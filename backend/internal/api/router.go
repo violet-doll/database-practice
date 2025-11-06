@@ -67,16 +67,44 @@ func SetupRouter() *gin.Engine {
 		}
 
 		// 考勤管理
-		// attendance := apiV1.Group("/attendance")
-		// ...
+		attendance := apiV1.Group("/attendance")
+		attendance.Use(middleware.AuthMiddleware())
+		{
+			attendance.GET("", v1.GetAttendance)                      // 列表（分页+筛选）
+			attendance.POST("", v1.CreateAttendance)                   // 新增记录（签到/缺席/请假/迟到）
+			attendance.GET("/student/:id", v1.GetAttendanceByStudent)  // 按学生查询
+			attendance.GET("/stats", v1.GetAttendanceStats)            // 统计
+			attendance.DELETE(":id", v1.DeleteAttendance)              // 删除记录
+		}
 
 		// 奖惩管理
-		// rewards := apiV1.Group("/rewards")
-		// ...
+		rewards := apiV1.Group("/rewards")
+		rewards.Use(middleware.AuthMiddleware())
+		{
+			rewards.GET("", v1.GetRewards)                    // 列表（分页+筛选）
+			rewards.POST("", v1.CreateReward)                  // 新增奖惩记录
+			rewards.GET("/student/:id", v1.GetRewardsByStudent) // 按学生查询
+			rewards.DELETE(":id", v1.DeleteReward)             // 删除记录
+		}
+
+
+		// 家长联系方式管理
+		parents := apiV1.Group("/parents")
+		parents.Use(middleware.AuthMiddleware())
+		{
+			parents.GET("", v1.GetParents)
+			parents.POST("", v1.CreateParent)
+			parents.PUT(":id", v1.UpdateParent)
+			parents.DELETE(":id", v1.DeleteParent)
+		}
 
 		// 通知管理
-		// notifications := apiV1.Group("/notifications")
-		// ...
+		notifications := apiV1.Group("/notifications")
+		notifications.Use(middleware.AuthMiddleware())
+		{
+			notifications.GET("", v1.GetNotifications)
+			notifications.POST("", v1.CreateNotification)
+		}
 	}
 
 	return r

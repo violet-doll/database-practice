@@ -52,6 +52,12 @@ const routes = [
                 meta: { title: '考勤管理' },
             },
             {
+                path: '/attendance-stats',
+                name: 'AttendanceStats',
+                component: () => import('@/views/AttendanceStats.vue'),
+                meta: { title: '考勤统计' },
+            },
+            {
                 path: '/rewards',
                 name: 'Rewards',
                 component: () => import('@/views/Rewards.vue'),
@@ -62,6 +68,12 @@ const routes = [
                 name: 'Notifications',
                 component: () => import('@/views/Notifications.vue'),
                 meta: { title: '通知管理' },
+            },
+            {
+                path: '/parents',
+                name: 'Parents',
+                component: () => import('@/views/Parents.vue'),
+                meta: { title: '家长联系方式' },
             },
         ],
     },

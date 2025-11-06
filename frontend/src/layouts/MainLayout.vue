@@ -45,6 +45,10 @@
             <el-icon><Bell /></el-icon>
             <span>通知管理</span>
           </el-menu-item>
+          <el-menu-item index="/parents">
+            <el-icon><User /></el-icon>
+            <span>家长联系方式</span>
+          </el-menu-item>
         </el-menu>
       </el-aside>
 

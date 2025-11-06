@@ -75,11 +75,11 @@ type Course struct {
 // 8. 选课表 (学生和课程的中间表) (对应要求 2)
 type Enrollment struct {
 	gorm.Model
-	StudentID uint    `gorm:"index:idx_student_course,unique" json:"student_id"` // 联合唯一索引
-	Student   Student `gorm:"foreignKey:StudentID" json:"student"`
+	StudentID uint    `gorm:"index:idx_student_course,unique" json:"student_id"`
+	Student   Student `gorm:"foreignKey:StudentID" json:"Student"` // 明确指定JSON字段名
 	CourseID  uint    `gorm:"index:idx_student_course,unique" json:"course_id"`
-	Course    Course  `gorm:"foreignKey:CourseID" json:"course"`
-	Grades    []Grade `gorm:"foreignKey:EnrollmentID" json:"grades,omitempty"` // 一个选课记录对应多个成绩 (平时/期末)
+	Course    Course  `gorm:"foreignKey:CourseID" json:"Course"`               // 明确指定JSON字段名
+	Grades    []Grade `gorm:"foreignKey:EnrollmentID" json:"Grades,omitempty"` // 明确指定JSON字段名
 }
 
 // 9. 成绩表 (对应要求 2)

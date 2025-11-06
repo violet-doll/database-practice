@@ -46,12 +46,25 @@ func SetupRouter() *gin.Engine {
 		// }
 
 		// 课程管理
-		// courses := apiV1.Group("/courses")
-		// ...
+		courses := apiV1.Group("/courses")
+		courses.Use(middleware.AuthMiddleware())
+		{
+			courses.GET("", v1.GetCourses)
+			courses.GET("/:id", v1.GetCourse)
+			courses.POST("", v1.CreateCourse)
+			courses.PUT("/:id", v1.UpdateCourse)
+			courses.DELETE("/:id", v1.DeleteCourse)
+		}
 
 		// 成绩管理
-		// grades := apiV1.Group("/grades")
-		// ...
+		grades := apiV1.Group("/grades")
+		grades.Use(middleware.AuthMiddleware())
+		{
+			grades.GET("", v1.GetGrades) // 新增：全部成绩分页列表（可筛选）
+			grades.POST("", v1.CreateGrade)
+			grades.GET("/student/:id", v1.GetGradesByStudent)
+			grades.GET("/course/:id", v1.GetGradesByCourse)
+		}
 
 		// 考勤管理
 		// attendance := apiV1.Group("/attendance")

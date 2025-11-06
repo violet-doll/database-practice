@@ -58,14 +58,14 @@ student-management-system/
 ### ✅ 已实现
 - [x] 用户认证（登录/登出）
 - [x] 学生信息管理（CRUD）
+- [x] 课程管理（CRUD）
+- [x] 成绩管理（录入、按学生/课程查询）
 - [x] 数据看板
 - [x] 基于角色的权限控制（RBAC）
 
 ### 🚧 开发中
 - [ ] 班级管理
 - [ ] 教师管理
-- [ ] 课程管理
-- [ ] 成绩管理
 - [ ] 考勤管理
 - [ ] 奖惩管理
 - [ ] 通知管理
@@ -158,7 +158,24 @@ VALUES ('admin', '$2a$10$...(bcrypt hash)...', 1, 1, 'admin', NOW(), NOW());
 - 基础路径: `/api/v1`
 - 认证方式: Bearer Token (JWT)
 
-详细接口文档请参考 [backend/README.md](backend/README.md)
+主要接口（节选）：
+
+```
+/api/v1
+  /courses
+    GET    /            # 课程列表（分页、搜索）
+    GET    /:id         # 课程详情
+    POST   /            # 新增课程
+    PUT    /:id         # 更新课程
+    DELETE /:id         # 删除课程
+
+  /grades
+    POST   /            # 录入成绩（自动创建选课关系）
+    GET    /student/:id # 按学生查询成绩（返回选课+成绩明细）
+    GET    /course/:id  # 按课程查询成绩（返回选课+成绩明细）
+```
+
+详细接口文档请参考 `backend/internal/api/v1` 源码注释。
 
 ## 开发指南
 

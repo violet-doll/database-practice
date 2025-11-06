@@ -125,7 +125,7 @@ const pagination = reactive({
 })
 
 const studentForm = reactive({
-  id: null,
+  ID: null,
   student_id: '',
   name: '',
   gender: '男',
@@ -178,7 +178,16 @@ const handleAdd = () => {
 
 const handleEdit = (row) => {
   dialogTitle.value = '编辑学生'
-  Object.assign(studentForm, row)
+  Object.assign(studentForm, {
+    ID: row.ID,
+    student_id: row.student_id,
+    name: row.name,
+    gender: row.gender,
+    age: row.age,
+    phone: row.phone,
+    email: row.email,
+    address: row.address,
+  })
   dialogVisible.value = true
 }
 
@@ -204,11 +213,20 @@ const handleSubmit = async () => {
   await studentFormRef.value.validate(async (valid) => {
     if (valid) {
       try {
-        if (studentForm.id) {
-          await updateStudent(studentForm.ID, studentForm)
+        const payload = {
+          student_id: studentForm.student_id,
+          name: studentForm.name,
+          gender: studentForm.gender,
+          age: studentForm.age,
+          phone: studentForm.phone,
+          email: studentForm.email,
+          address: studentForm.address,
+        }
+        if (studentForm.ID) {
+          await updateStudent(studentForm.ID, payload)
           ElMessage.success('更新成功')
         } else {
-          await createStudent(studentForm)
+          await createStudent(payload)
           ElMessage.success('添加成功')
         }
         dialogVisible.value = false
@@ -221,7 +239,7 @@ const handleSubmit = async () => {
 }
 
 const resetForm = () => {
-  studentForm.id = null
+  studentForm.ID = null
   studentForm.student_id = ''
   studentForm.name = ''
   studentForm.gender = '男'

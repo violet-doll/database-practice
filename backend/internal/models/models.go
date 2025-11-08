@@ -16,7 +16,23 @@ type User struct {
 // 2. 角色表 (RBAC)
 type Role struct {
 	gorm.Model
-	RoleName string `gorm:"type:varchar(50);uniqueIndex;not null" json:"role_name"`
+	RoleName    string       `gorm:"type:varchar(50);uniqueIndex;not null" json:"role_name"`
+	Permissions []Permission `gorm:"many2many:role_permissions;" json:"permissions,omitempty"` // 角色拥有的权限
+}
+
+// 权限表 (Permission)
+type Permission struct {
+	gorm.Model
+	Name       string `gorm:"type:varchar(100);not null" json:"name"`        // 权限名称 (e.g., "创建学生")
+	Permission string `gorm:"type:varchar(100);uniqueIndex;not null" json:"permission"` // 权限标识 (e.g., "student:create")
+	Group      string `gorm:"type:varchar(50)" json:"group"`               // 分组 (e.g., "student")
+}
+
+// 角色-权限 关联表 (RolePermission)
+type RolePermission struct {
+	gorm.Model
+	RoleID       uint `gorm:"index:idx_role_perm,unique" json:"role_id"`
+	PermissionID uint `gorm:"index:idx_role_perm,unique" json:"permission_id"`
 }
 
 // 3. 学生表 (对应要求 1)
@@ -119,4 +135,20 @@ type Notification struct {
 	Content  string `json:"content"`
 	SenderID uint   `json:"sender_id"` // (可选) 发送人 (关联 User)
 	Target   string `json:"target"`    // (可选) 发送目标 e.g., "all", "class:5"
+}
+
+// 13. 课程表 (排课)
+type Schedule struct {
+	gorm.Model
+	CourseID  uint    `gorm:"index" json:"course_id"` // 关联课程
+	Course    Course  `gorm:"foreignKey:CourseID" json:"course"`
+	ClassID   uint    `gorm:"index" json:"class_id"`  // 关联班级
+	Class     Class   `gorm:"foreignKey:ClassID" json:"class"`
+	TeacherID uint    `gorm:"index" json:"teacher_id"` // 关联教师 (可从Course获取, 但显式存储更灵活)
+	Teacher   Teacher `gorm:"foreignKey:TeacherID" json:"teacher"`
+	DayOfWeek int     `json:"day_of_week"`           // 星期几 (例如 1=周一, 7=周日)
+	StartTime string  `json:"start_time"`            // 节次或时间 (e.g., "08:00" 或 "1-2节")
+	EndTime   string  `json:"end_time"`              // (e.g., "09:40")
+	Location  string  `json:"location"`              // 上课地点 (e.g., "教5-101")
+	Semester  string  `json:"semester"`              // (可选) 学期 (e.g., "2025-Fall")
 }

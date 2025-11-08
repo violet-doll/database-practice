@@ -25,86 +25,134 @@ func SetupRouter() *gin.Engine {
 			auth.GET("/me", middleware.AuthMiddleware(), v1.GetCurrentUser)
 		}
 
-		// 学生管理（需要认证）
+        // 学生管理（需要认证 和 特定权限）
 		students := apiV1.Group("/students")
-		students.Use(middleware.AuthMiddleware())
+		students.Use(middleware.AuthMiddleware()) // AuthMiddleware 必须在前面, 它负责设置权限列表
 		{
-			students.GET("", v1.GetStudents)
-			students.GET("/:id", v1.GetStudent)
-			students.POST("", v1.CreateStudent)
-			students.PUT("/:id", v1.UpdateStudent)
-			students.DELETE("/:id", v1.DeleteStudent)
+			students.GET("", middleware.PermissionMiddleware("student:read"), v1.GetStudents)
+			students.GET("/:id", middleware.PermissionMiddleware("student:read"), v1.GetStudent)
+			students.POST("", middleware.PermissionMiddleware("student:create"), v1.CreateStudent)
+			students.PUT("/:id", middleware.PermissionMiddleware("student:update"), v1.UpdateStudent)
+			students.DELETE("/:id", middleware.PermissionMiddleware("student:delete"), v1.DeleteStudent)
 		}
 
-		// TODO: 添加其他路由
-		// 班级管理
-		// classes := apiV1.Group("/classes")
-		// classes.Use(middleware.AuthMiddleware())
-		// {
-		//     classes.GET("", v1.GetClasses)
-		//     ...
-		// }
 
-		// 课程管理
+		// 班级管理（需要认证 和 特定权限）
+		classes := apiV1.Group("/classes")
+		classes.Use(middleware.AuthMiddleware())
+		{
+			classes.GET("", middleware.PermissionMiddleware("class:read"), v1.GetClasses)
+			classes.GET(":id", middleware.PermissionMiddleware("class:read"), v1.GetClass)
+			classes.POST("", middleware.PermissionMiddleware("class:create"), v1.CreateClass)
+			classes.PUT(":id", middleware.PermissionMiddleware("class:update"), v1.UpdateClass)
+			classes.DELETE(":id", middleware.PermissionMiddleware("class:delete"), v1.DeleteClass)
+		}
+
+        // 课程管理（需要认证 和 特定权限）
 		courses := apiV1.Group("/courses")
 		courses.Use(middleware.AuthMiddleware())
 		{
-			courses.GET("", v1.GetCourses)
-			courses.GET("/:id", v1.GetCourse)
-			courses.POST("", v1.CreateCourse)
-			courses.PUT("/:id", v1.UpdateCourse)
-			courses.DELETE("/:id", v1.DeleteCourse)
+			courses.GET("", middleware.PermissionMiddleware("course:read"), v1.GetCourses)
+			courses.GET("/:id", middleware.PermissionMiddleware("course:read"), v1.GetCourse)
+			courses.POST("", middleware.PermissionMiddleware("course:create"), v1.CreateCourse)
+			courses.PUT("/:id", middleware.PermissionMiddleware("course:update"), v1.UpdateCourse)
+			courses.DELETE("/:id", middleware.PermissionMiddleware("course:delete"), v1.DeleteCourse)
 		}
 
-		// 成绩管理
+		// 排课管理（需要认证 和 特定权限）
+		schedules := apiV1.Group("/schedules")
+		schedules.Use(middleware.AuthMiddleware())
+		{
+			schedules.GET("", middleware.PermissionMiddleware("schedule:read"), v1.GetSchedules)
+			schedules.GET("/:id", middleware.PermissionMiddleware("schedule:read"), v1.GetSchedule)
+			schedules.POST("", middleware.PermissionMiddleware("schedule:create"), v1.CreateSchedule)
+			schedules.PUT("/:id", middleware.PermissionMiddleware("schedule:update"), v1.UpdateSchedule)
+			schedules.DELETE("/:id", middleware.PermissionMiddleware("schedule:delete"), v1.DeleteSchedule)
+		}
+
+		// 选课管理 (独立于成绩)（需要认证 和 特定权限）
+		enrollments := apiV1.Group("/enrollments")
+		enrollments.Use(middleware.AuthMiddleware())
+		{
+			enrollments.GET("", middleware.PermissionMiddleware("enrollment:read"), v1.GetEnrollments)
+			enrollments.POST("", middleware.PermissionMiddleware("enrollment:create"), v1.CreateEnrollment)
+			enrollments.DELETE("/:id", middleware.PermissionMiddleware("enrollment:delete"), v1.DeleteEnrollment)
+		}
+
+		// 成绩管理（需要认证 和 特定权限）
 		grades := apiV1.Group("/grades")
 		grades.Use(middleware.AuthMiddleware())
 		{
-			grades.GET("", v1.GetGrades) // 新增：全部成绩分页列表（可筛选）
-			grades.POST("", v1.CreateGrade)
-			grades.GET("/student/:id", v1.GetGradesByStudent)
-			grades.GET("/course/:id", v1.GetGradesByCourse)
+			grades.GET("", middleware.PermissionMiddleware("grade:read"), v1.GetGrades) // 新增：全部成绩分页列表（可筛选）
+			grades.GET("/student/:id", middleware.PermissionMiddleware("grade:read"), v1.GetGradesByStudent)
+			grades.GET("/course/:id", middleware.PermissionMiddleware("grade:read"), v1.GetGradesByCourse)
+			grades.POST("", middleware.PermissionMiddleware("grade:create"), v1.CreateGrade)
 		}
 
-		// 考勤管理
+        // 考勤管理（需要认证 和 特定权限）
 		attendance := apiV1.Group("/attendance")
 		attendance.Use(middleware.AuthMiddleware())
 		{
-			attendance.GET("", v1.GetAttendance)                      // 列表（分页+筛选）
-			attendance.POST("", v1.CreateAttendance)                   // 新增记录（签到/缺席/请假/迟到）
-			attendance.GET("/student/:id", v1.GetAttendanceByStudent)  // 按学生查询
-			attendance.GET("/stats", v1.GetAttendanceStats)            // 统计
-			attendance.DELETE(":id", v1.DeleteAttendance)              // 删除记录
+			attendance.GET("", middleware.PermissionMiddleware("attendance:read"), v1.GetAttendance)                      // 列表（分页+筛选）
+			attendance.GET("/student/:id", middleware.PermissionMiddleware("attendance:read"), v1.GetAttendanceByStudent)  // 按学生查询
+			attendance.GET("/stats", middleware.PermissionMiddleware("attendance:read"), v1.GetAttendanceStats)            // 统计
+			attendance.POST("", middleware.PermissionMiddleware("attendance:create"), v1.CreateAttendance)                   // 新增记录（签到/缺席/请假/迟到）
+			attendance.DELETE(":id", middleware.PermissionMiddleware("attendance:delete"), v1.DeleteAttendance)              // 删除记录
 		}
 
-		// 奖惩管理
+		// 奖惩管理（需要认证 和 特定权限）
 		rewards := apiV1.Group("/rewards")
 		rewards.Use(middleware.AuthMiddleware())
 		{
-			rewards.GET("", v1.GetRewards)                    // 列表（分页+筛选）
-			rewards.POST("", v1.CreateReward)                  // 新增奖惩记录
-			rewards.GET("/student/:id", v1.GetRewardsByStudent) // 按学生查询
-			rewards.DELETE(":id", v1.DeleteReward)             // 删除记录
+			rewards.GET("", middleware.PermissionMiddleware("reward:read"), v1.GetRewards)                    // 列表（分页+筛选）
+			rewards.GET("/student/:id", middleware.PermissionMiddleware("reward:read"), v1.GetRewardsByStudent) // 按学生查询
+			rewards.POST("", middleware.PermissionMiddleware("reward:create"), v1.CreateReward)                  // 新增奖惩记录
+			rewards.DELETE(":id", middleware.PermissionMiddleware("reward:delete"), v1.DeleteReward)             // 删除记录
 		}
 
 
-		// 家长联系方式管理
+		// 家长联系方式管理（需要认证 和 特定权限）
 		parents := apiV1.Group("/parents")
 		parents.Use(middleware.AuthMiddleware())
 		{
-			parents.GET("", v1.GetParents)
-			parents.POST("", v1.CreateParent)
-			parents.PUT(":id", v1.UpdateParent)
-			parents.DELETE(":id", v1.DeleteParent)
+			parents.GET("", middleware.PermissionMiddleware("parent:read"), v1.GetParents)
+			parents.POST("", middleware.PermissionMiddleware("parent:create"), v1.CreateParent)
+			parents.PUT(":id", middleware.PermissionMiddleware("parent:update"), v1.UpdateParent)
+			parents.DELETE(":id", middleware.PermissionMiddleware("parent:delete"), v1.DeleteParent)
 		}
 
-		// 通知管理
+		// 通知管理（需要认证 和 特定权限）
 		notifications := apiV1.Group("/notifications")
 		notifications.Use(middleware.AuthMiddleware())
 		{
-			notifications.GET("", v1.GetNotifications)
-			notifications.POST("", v1.CreateNotification)
+			notifications.GET("", middleware.PermissionMiddleware("notification:read"), v1.GetNotifications)
+			notifications.POST("", middleware.PermissionMiddleware("notification:create"), v1.CreateNotification)
 		}
+
+        // 管理员模块（需要认证 和 特定权限）
+        admin := apiV1.Group("/admin")
+        admin.Use(middleware.AuthMiddleware()) // AuthMiddleware 必须在前面
+        {
+            // 用户管理
+            admin.GET("/users", middleware.PermissionMiddleware("admin:user:read"), v1.AdminListUsers)
+            admin.POST("/users", middleware.PermissionMiddleware("admin:user:create"), v1.AdminCreateUser)
+            admin.PUT("/users/:id", middleware.PermissionMiddleware("admin:user:update"), v1.AdminUpdateUser)
+            admin.DELETE("/users/:id", middleware.PermissionMiddleware("admin:user:delete"), v1.AdminDeleteUser)
+
+            // 角色管理
+            admin.GET("/roles", middleware.PermissionMiddleware("admin:role:read"), v1.AdminListRoles)
+            admin.POST("/roles", middleware.PermissionMiddleware("admin:role:create"), v1.AdminCreateRole)
+            admin.PUT("/roles/:id", middleware.PermissionMiddleware("admin:role:update"), v1.AdminUpdateRole)
+            admin.DELETE("/roles/:id", middleware.PermissionMiddleware("admin:role:delete"), v1.AdminDeleteRole)
+
+            // 权限管理 (新 API)
+            admin.GET("/permissions", middleware.PermissionMiddleware("admin:role:read"), v1.AdminListPermissions)
+            admin.GET("/roles/:id/permissions", middleware.PermissionMiddleware("admin:role:read"), v1.AdminGetRolePermissions)
+            admin.POST("/roles/:id/permissions", middleware.PermissionMiddleware("admin:role:update"), v1.AdminUpdateRolePermissions)
+
+            // 统计概览
+            admin.GET("/stats/overview", middleware.PermissionMiddleware("admin:stats:read"), v1.AdminOverviewStats)
+        }
 	}
 
 	return r

@@ -93,6 +93,16 @@ func CreateStudent(c *gin.Context) {
 	}
 
 	db := config.GetDB()
+
+	var existingStudent models.Student
+	if err := db.Unscoped().Where("student_id = ?", student.StudentID).First(&existingStudent).Error; err == nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"code":    400,
+			"message": "创建失败：该学号已存在",
+		})
+		return
+	}
+
 	if err := db.Create(&student).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"code":    500,

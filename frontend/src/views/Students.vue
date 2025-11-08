@@ -93,6 +93,23 @@
         <el-form-item label="地址" prop="address">
           <el-input v-model="studentForm.address" type="textarea" />
         </el-form-item>
+        <!-- vvvv 新增的表单项 vvvv -->
+        <el-form-item label="班级" prop="class_id">
+          <el-select 
+            v-model="studentForm.class_id" 
+            placeholder="请选择班级" 
+            style="width: 100%"
+            clearable
+          >
+            <el-option
+              v-for="cls in classList"
+              :key="cls.ID"
+              :label="cls.class_name"
+              :value="cls.ID"
+            />
+          </el-select>
+        </el-form-item>
+        <!-- ^^^^ 新增的表单项 ^^^^ -->
       </el-form>
       <template #footer>
         <el-button @click="dialogVisible = false">取消</el-button>
@@ -106,9 +123,11 @@
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { getStudents, createStudent, updateStudent, deleteStudent } from '@/api/student'
+import { getClasses } from '@/api/class' // <--- 步骤1：新增引入
 
 const loading = ref(false)
 const studentList = ref([])
+const classList = ref([]) // <--- 步骤2：新增 ref
 const dialogVisible = ref(false)
 const dialogTitle = ref('添加学生')
 const studentFormRef = ref(null)
@@ -133,6 +152,7 @@ const studentForm = reactive({
   phone: '',
   email: '',
   address: '',
+  class_id: null, // <--- 步骤3：新增字段
 })
 
 const studentRules = {
@@ -156,6 +176,17 @@ const fetchStudents = async () => {
     console.error('获取学生列表失败:', error)
   } finally {
     loading.value = false
+  }
+}
+
+// <--- 步骤2：新增函数 --->
+const fetchClasses = async () => {
+  try {
+    // 获取所有班级用于下拉框，假设数量不多，直接设置一个较大的 page_size
+    const res = await getClasses({ page: 1, page_size: 999 }) 
+    classList.value = res.data.list || []
+  } catch (error) {
+    console.error('获取班级列表失败:', error)
   }
 }
 
@@ -187,6 +218,7 @@ const handleEdit = (row) => {
     phone: row.phone,
     email: row.email,
     address: row.address,
+    class_id: row.class_id, // <--- 步骤6：编辑时回填
   })
   dialogVisible.value = true
 }
@@ -221,6 +253,7 @@ const handleSubmit = async () => {
           phone: studentForm.phone,
           email: studentForm.email,
           address: studentForm.address,
+          class_id: studentForm.class_id, // <--- 步骤4：提交时包含
         }
         if (studentForm.ID) {
           await updateStudent(studentForm.ID, payload)
@@ -247,6 +280,7 @@ const resetForm = () => {
   studentForm.phone = ''
   studentForm.email = ''
   studentForm.address = ''
+  studentForm.class_id = null // <--- 步骤5：重置时清空
 }
 
 const handleSizeChange = (val) => {
@@ -261,6 +295,7 @@ const handleCurrentChange = (val) => {
 
 onMounted(() => {
   fetchStudents()
+  fetchClasses() // <--- 步骤2：新增调用
 })
 </script>
 

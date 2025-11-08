@@ -40,6 +40,18 @@ const routes = [
                 meta: { title: '课程管理' },
             },
             {
+                path: '/enrollments',
+                name: 'Enrollments',
+                component: () => import('@/views/Enrollments.vue'),
+                meta: { title: '选课管理' },
+            },
+            {
+                path: '/schedule',
+                name: 'Schedule',
+                component: () => import('@/views/Schedule.vue'),
+                meta: { title: '排课管理' },
+            },
+            {
                 path: '/grades',
                 name: 'Grades',
                 component: () => import('@/views/Grades.vue'),
@@ -75,6 +87,25 @@ const routes = [
                 component: () => import('@/views/Parents.vue'),
                 meta: { title: '家长联系方式' },
             },
+            // 管理员：系统设置
+            {
+                path: '/admin/overview',
+                name: 'AdminOverview',
+                component: () => import('@/views/AdminOverview.vue'),
+                meta: { title: '统计概览（管理员）' },
+            },
+            {
+                path: '/admin/users',
+                name: 'AdminUsers',
+                component: () => import('@/views/AdminUsers.vue'),
+                meta: { title: '用户与权限（管理员）' },
+            },
+            {
+                path: '/admin/roles',
+                name: 'AdminRoles',
+                component: () => import('@/views/AdminRoles.vue'),
+                meta: { title: '角色管理（管理员）' },
+            },
         ],
     },
 ]
@@ -84,19 +115,28 @@ const router = createRouter({
     routes,
 })
 
-// 路由守卫
-router.beforeEach((to, from, next) => {
+// 路由守卫（刷新后恢复用户信息，保证管理员菜单渲染）
+router.beforeEach(async (to, from, next) => {
     const userStore = useUserStore()
 
-    if (to.meta.requiresAuth && !userStore.isLoggedIn) {
-        // 需要认证但未登录，跳转到登录页
-        next('/login')
-    } else if (to.path === '/login' && userStore.isLoggedIn) {
-        // 已登录但访问登录页，跳转到首页
-        next('/')
-    } else {
-        next()
+    // 若已登录但 userInfo 为空，则尝试拉取当前用户信息（刷新场景）
+    if (userStore.isLoggedIn && !userStore.userInfo && to.path !== '/login') {
+        try {
+            await userStore.fetchUserInfo()
+        } catch (e) {
+            // token 失效，清理并跳登录
+            userStore.logout()
+            return next('/login')
+        }
     }
+
+    if (to.meta.requiresAuth && !userStore.isLoggedIn) {
+        return next('/login')
+    }
+    if (to.path === '/login' && userStore.isLoggedIn) {
+        return next('/')
+    }
+    return next()
 })
 
 export default router

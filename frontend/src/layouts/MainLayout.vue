@@ -29,6 +29,14 @@
             <el-icon><Reading /></el-icon>
             <span>课程管理</span>
           </el-menu-item>
+          <el-menu-item index="/enrollments">
+            <el-icon><DocumentAdd /></el-icon>
+            <span>选课管理</span>
+          </el-menu-item>
+          <el-menu-item index="/schedule">
+            <el-icon><Grid /></el-icon>
+            <span>排课管理</span>
+          </el-menu-item>
           <el-menu-item index="/grades">
             <el-icon><Document /></el-icon>
             <span>成绩管理</span>
@@ -49,6 +57,27 @@
             <el-icon><User /></el-icon>
             <span>家长联系方式</span>
           </el-menu-item>
+        <!-- 管理员：系统设置菜单，仅 admin 可见 -->
+        <template v-if="isAdmin">
+          <el-sub-menu index="/admin">
+            <template #title>
+              <el-icon><Setting /></el-icon>
+              <span>系统设置</span>
+            </template>
+            <el-menu-item index="/admin/overview">
+              <el-icon><DataAnalysis /></el-icon>
+              <span>统计概览</span>
+            </el-menu-item>
+            <el-menu-item index="/admin/users">
+              <el-icon><User /></el-icon>
+              <span>用户与权限</span>
+            </el-menu-item>
+            <el-menu-item index="/admin/roles">
+              <el-icon><User /></el-icon>
+              <span>角色管理</span>
+            </el-menu-item>
+          </el-sub-menu>
+        </template>
         </el-menu>
       </el-aside>
 
@@ -96,11 +125,14 @@ import {
   School,
   Reading,
   Document,
+  DocumentAdd,
+  Grid,
   Calendar,
   Medal,
   Bell,
   Avatar,
   ArrowDown,
+  Setting,
 } from '@element-plus/icons-vue'
 
 const route = useRoute()
@@ -109,6 +141,8 @@ const userStore = useUserStore()
 
 const activeMenu = computed(() => route.path)
 const currentTitle = computed(() => route.meta.title || '')
+
+const isAdmin = computed(() => userStore.userInfo?.role?.role_name === 'admin')
 
 const handleCommand = (command) => {
   if (command === 'logout') {

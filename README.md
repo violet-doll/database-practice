@@ -56,23 +56,35 @@ student-management-system/
 ## 功能模块
 
 ### ✅ 已实现
-- [x] 用户认证（登录/登出）
-- [x] 学生信息管理（CRUD）
-- [x] 课程管理（CRUD）
-- [x] 成绩管理（录入、按学生/课程查询）
-- [x] 数据看板
-- [x] 基于角色的权限控制（RBAC）
-- [x] 家长联系管理（家长联系方式 CRUD）
-- [x] 通知管理（发布与查看，模拟短信/邮件发送）
 
-### 🚧 开发中
-- [ ] 班级管理
-- [ ] 教师管理
-- [ ] 考勤管理
-- [ ] 奖惩管理
-- [ ] 班级管理
-- [ ] 教师管理
-- [ ] 数据统计和分析
+#### 核心功能
+- [x] **用户认证**：登录/登出、JWT令牌认证、路由守卫、自动登出
+- [x] **学生信息管理**：完整的CRUD操作、分页、搜索（姓名、学号、班级）
+- [x] **班级管理**：班级CRUD、关联班主任、查看班级学生
+- [x] **课程管理**：课程CRUD、关联授课教师、学分管理
+- [x] **排课管理**：课程时间安排、教室分配
+- [x] **选课管理**：学生选课、批量选课、选课记录查询
+- [x] **成绩管理**：成绩录入、按学生查询、按课程查询、成绩列表（分页、筛选）
+- [x] **考勤管理**：考勤记录（出勤/缺席/请假/迟到）、按学生查询、考勤统计
+- [x] **奖惩管理**：奖惩记录录入、按学生查询、奖惩列表（分页、筛选）
+- [x] **家长联系管理**：家长联系方式CRUD、关联学生
+- [x] **通知管理**：通知发布、通知列表、模拟短信/邮件发送
+- [x] **数据看板**：系统概览统计、关键数据展示
+
+#### 系统管理
+- [x] **基于角色的权限控制（RBAC）**：角色管理、权限分配、细粒度权限控制
+- [x] **用户管理**：用户CRUD、用户状态管理、角色分配
+- [x] **角色管理**：角色CRUD、权限关联
+- [x] **权限管理**：权限列表、角色权限分配
+- [x] **统计概览**：系统数据统计（用户、学生、课程、成绩、考勤等）
+
+### 🚧 待优化功能
+- [ ] 数据导入导出（Excel）
+- [ ] 批量操作
+- [ ] 高级搜索和筛选
+- [ ] 操作日志记录
+- [ ] 数据备份和恢复
+- [ ] 系统设置
 
 ## 快速开始
 
@@ -157,34 +169,122 @@ VALUES ('admin', '$2a$10$...(bcrypt hash)...', 1, 1, 'admin', NOW(), NOW());
 
 后端API接口文档：
 
-- 基础路径: `/api/v1`
-- 认证方式: Bearer Token (JWT)
+- **基础路径**: `/api/v1`
+- **认证方式**: Bearer Token (JWT)
+- **响应格式**: JSON
 
-主要接口（节选）：
+### 主要接口
 
+#### 认证相关
 ```
-/api/v1
-  /courses
-    GET    /            # 课程列表（分页、搜索）
-    GET    /:id         # 课程详情
-    POST   /            # 新增课程
-    PUT    /:id         # 更新课程
-    DELETE /:id         # 删除课程
+POST   /api/v1/auth/login      # 用户登录
+POST   /api/v1/auth/logout     # 用户登出
+GET    /api/v1/auth/me         # 获取当前用户信息
+```
 
-  /grades
-    POST   /            # 录入成绩（自动创建选课关系）
-    GET    /student/:id # 按学生查询成绩（返回选课+成绩明细）
-    GET    /course/:id  # 按课程查询成绩（返回选课+成绩明细）
+#### 学生管理
+```
+GET    /api/v1/students        # 学生列表（分页、搜索：name, student_id, class_id）
+GET    /api/v1/students/:id    # 学生详情
+POST   /api/v1/students        # 新增学生
+PUT    /api/v1/students/:id    # 更新学生信息
+DELETE /api/v1/students/:id    # 删除学生
+```
 
-  /parents
-    GET    /            # 家长联系方式列表（分页，支持 student_id 筛选）
-    POST   /            # 新增家长联系方式
-    PUT    /:id         # 更新家长联系方式
-    DELETE /:id         # 删除家长联系方式
+#### 班级管理
+```
+GET    /api/v1/classes         # 班级列表
+GET    /api/v1/classes/:id     # 班级详情
+POST   /api/v1/classes         # 新增班级
+PUT    /api/v1/classes/:id     # 更新班级
+DELETE /api/v1/classes/:id    # 删除班级
+```
 
-  /notifications
-    GET    /            # 通知列表（分页，按 target 筛选）
-    POST   /            # 发布通知（模拟发送短信/邮件）
+#### 课程管理
+```
+GET    /api/v1/courses         # 课程列表（分页、搜索：course_name, teacher_id）
+GET    /api/v1/courses/:id     # 课程详情
+POST   /api/v1/courses         # 新增课程
+PUT    /api/v1/courses/:id     # 更新课程
+DELETE /api/v1/courses/:id     # 删除课程
+```
+
+#### 排课管理
+```
+GET    /api/v1/schedules       # 排课列表
+GET    /api/v1/schedules/:id   # 排课详情
+POST   /api/v1/schedules       # 新增排课
+PUT    /api/v1/schedules/:id   # 更新排课
+DELETE /api/v1/schedules/:id  # 删除排课
+```
+
+#### 选课管理
+```
+GET    /api/v1/enrollments     # 选课列表（分页、筛选）
+POST   /api/v1/enrollments     # 新增选课
+DELETE /api/v1/enrollments/:id # 删除选课
+```
+
+#### 成绩管理
+```
+GET    /api/v1/grades          # 成绩列表（分页、筛选）
+GET    /api/v1/grades/student/:id  # 按学生查询成绩
+GET    /api/v1/grades/course/:id   # 按课程查询成绩
+POST   /api/v1/grades          # 录入成绩
+```
+
+#### 考勤管理
+```
+GET    /api/v1/attendance      # 考勤列表（分页、筛选）
+GET    /api/v1/attendance/student/:id  # 按学生查询考勤
+GET    /api/v1/attendance/stats # 考勤统计
+POST   /api/v1/attendance      # 新增考勤记录
+DELETE /api/v1/attendance/:id  # 删除考勤记录
+```
+
+#### 奖惩管理
+```
+GET    /api/v1/rewards         # 奖惩列表（分页、筛选）
+GET    /api/v1/rewards/student/:id  # 按学生查询奖惩
+POST   /api/v1/rewards         # 新增奖惩记录
+DELETE /api/v1/rewards/:id     # 删除奖惩记录
+```
+
+#### 家长联系管理
+```
+GET    /api/v1/parents         # 家长联系方式列表（分页，支持 student_id 筛选）
+POST   /api/v1/parents         # 新增家长联系方式
+PUT    /api/v1/parents/:id     # 更新家长联系方式
+DELETE /api/v1/parents/:id     # 删除家长联系方式
+```
+
+#### 通知管理
+```
+GET    /api/v1/notifications   # 通知列表（分页，按 target 筛选）
+POST   /api/v1/notifications   # 发布通知（模拟发送短信/邮件）
+```
+
+#### 管理员模块
+```
+# 用户管理
+GET    /api/v1/admin/users    # 用户列表
+POST   /api/v1/admin/users     # 新增用户
+PUT    /api/v1/admin/users/:id # 更新用户
+DELETE /api/v1/admin/users/:id # 删除用户
+
+# 角色管理
+GET    /api/v1/admin/roles     # 角色列表
+POST   /api/v1/admin/roles     # 新增角色
+PUT    /api/v1/admin/roles/:id  # 更新角色
+DELETE /api/v1/admin/roles/:id # 删除角色
+
+# 权限管理
+GET    /api/v1/admin/permissions                    # 所有权限列表
+GET    /api/v1/admin/roles/:id/permissions          # 获取角色权限
+POST   /api/v1/admin/roles/:id/permissions          # 更新角色权限
+
+# 统计概览
+GET    /api/v1/admin/stats/overview                 # 系统概览统计
 ```
 
 详细接口文档请参考 `backend/internal/api/v1` 源码注释。
@@ -262,6 +362,6 @@ MIT License
 
 ---
 
-**项目状态**: 🚧 开发中
+**项目状态**: ✅ 核心功能已完成，持续优化中
 
-**最后更新**: 2025年11月6日
+**最后更新**: 2025年1月

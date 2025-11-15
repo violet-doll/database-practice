@@ -83,10 +83,31 @@ func AdminCreateUser(c *gin.Context) {
         return
     }
 
+    // 根据角色ID获取角色名称，自动设置 UserType
+    var role models.Role
+    if err := config.GetDB().First(&role, req.RoleID).Error; err != nil {
+        c.JSON(http.StatusBadRequest, gin.H{"code": 400, "message": "无效的角色ID"})
+        return
+    }
+
+    // 根据角色名称设置 UserType
+    userType := ""
+    switch role.RoleName {
+    case "admin":
+        userType = "admin"
+    case "teacher":
+        userType = "teacher"
+    case "student":
+        userType = "student"
+    case "parent":
+        userType = "parent"
+    }
+
     user := models.User{
         Username: req.Username,
         Password: hashed,
         RoleID:   req.RoleID,
+        UserType: userType,
     }
     if req.IsActive != nil {
         user.IsActive = *req.IsActive
@@ -131,6 +152,20 @@ func AdminUpdateUser(c *gin.Context) {
     }
     if req.RoleID != nil {
         user.RoleID = *req.RoleID
+        // 更新角色时，同时更新 UserType
+        var role models.Role
+        if err := db.First(&role, *req.RoleID).Error; err == nil {
+            switch role.RoleName {
+            case "admin":
+                user.UserType = "admin"
+            case "teacher":
+                user.UserType = "teacher"
+            case "student":
+                user.UserType = "student"
+            case "parent":
+                user.UserType = "parent"
+            }
+        }
     }
     if req.IsActive != nil {
         user.IsActive = *req.IsActive

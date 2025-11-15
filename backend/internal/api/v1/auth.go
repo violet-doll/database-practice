@@ -18,8 +18,9 @@ type LoginRequest struct {
 
 // LoginResponse 登录响应
 type LoginResponse struct {
-	Token string      `json:"token"`
-	User  models.User `json:"user"`
+	Token    string                 `json:"token"`
+	User     models.User            `json:"user"`
+	UserInfo map[string]interface{} `json:"user_info,omitempty"` // 根据角色返回的详细信息（学生/教师/家长信息）
 }
 
 // Login 用户登录
@@ -73,13 +74,61 @@ func Login(c *gin.Context) {
 		return
 	}
 
+	// 获取权限列表
+	var permissionList []string
+	var role models.Role
+	if err := db.Preload("Permissions").First(&role, user.RoleID).Error; err == nil {
+		for _, perm := range role.Permissions {
+			permissionList = append(permissionList, perm.Permission)
+		}
+	}
+
+	// 根据角色获取详细信息
+	response := LoginResponse{
+		Token: token,
+		User:  user,
+	}
+
+	// 根据用户类型和角色返回对应的详细信息
+	if user.UserID > 0 {
+		switch user.UserType {
+		case "student":
+			var student models.Student
+			if err := db.Preload("Class").Preload("Class.Teacher").First(&student, user.UserID).Error; err == nil {
+				response.UserInfo = map[string]interface{}{
+					"student": student,
+				}
+			}
+		case "teacher":
+			var teacher models.Teacher
+			if err := db.First(&teacher, user.UserID).Error; err == nil {
+				response.UserInfo = map[string]interface{}{
+					"teacher": teacher,
+				}
+			}
+		case "parent":
+			var parent models.Parent
+			if err := db.Preload("Student").Preload("Student.Class").First(&parent, user.UserID).Error; err == nil {
+				response.UserInfo = map[string]interface{}{
+					"parent":  parent,
+					"student": parent.Student, // 包含关联的学生信息
+				}
+			}
+		}
+	}
+
+	// 将权限列表添加到响应中
+	responseData := map[string]interface{}{
+		"token":       response.Token,
+		"user":        response.User,
+		"user_info":   response.UserInfo,
+		"permissions": permissionList,
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"code":    200,
 		"message": "登录成功",
-		"data": LoginResponse{
-			Token: token,
-			User:  user,
-		},
+		"data":    responseData,
 	})
 }
 
@@ -97,10 +146,56 @@ func GetCurrentUser(c *gin.Context) {
 		return
 	}
 
+	// 获取权限列表（从中间件设置的context中获取，如果没有则从数据库查询）
+	permissions, exists := c.Get("permissions")
+	var permissionList []string
+	if exists {
+		permissionMap := permissions.(map[string]bool)
+		for perm := range permissionMap {
+			permissionList = append(permissionList, perm)
+		}
+	} else {
+		// 如果context中没有，从数据库查询
+		var role models.Role
+		if err := db.Preload("Permissions").First(&role, user.RoleID).Error; err == nil {
+			for _, perm := range role.Permissions {
+				permissionList = append(permissionList, perm.Permission)
+			}
+		}
+	}
+
+	// 构建响应数据
+	response := map[string]interface{}{
+		"user":        user,
+		"permissions": permissionList,
+	}
+
+	// 根据用户类型返回对应的详细信息
+	if user.UserID > 0 {
+		switch user.UserType {
+		case "student":
+			var student models.Student
+			if err := db.Preload("Class").Preload("Class.Teacher").Preload("Parents").First(&student, user.UserID).Error; err == nil {
+				response["student"] = student
+			}
+		case "teacher":
+			var teacher models.Teacher
+			if err := db.First(&teacher, user.UserID).Error; err == nil {
+				response["teacher"] = teacher
+			}
+		case "parent":
+			var parent models.Parent
+			if err := db.Preload("Student").Preload("Student.Class").Preload("Student.Class.Teacher").First(&parent, user.UserID).Error; err == nil {
+				response["parent"] = parent
+				response["student"] = parent.Student // 包含关联的学生信息
+			}
+		}
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"code":    200,
 		"message": "获取成功",
-		"data":    user,
+		"data":    response,
 	})
 }
 

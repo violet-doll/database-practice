@@ -5,10 +5,15 @@ export const useUserStore = defineStore('user', {
     state: () => ({
         token: localStorage.getItem('token') || '',
         userInfo: null,
+        permissions: JSON.parse(localStorage.getItem('permissions') || '[]'), // 权限列表
     }),
 
     getters: {
         isLoggedIn: (state) => !!state.token,
+        // 检查是否有某个权限
+        hasPermission: (state) => (permission) => {
+            return state.permissions.includes(permission)
+        },
     },
 
     actions: {
@@ -18,7 +23,9 @@ export const useUserStore = defineStore('user', {
                 const res = await loginApi(credentials)
                 this.token = res.data.token
                 this.userInfo = res.data.user
+                this.permissions = res.data.permissions || []
                 localStorage.setItem('token', res.data.token)
+                localStorage.setItem('permissions', JSON.stringify(this.permissions))
                 return res
             } catch (error) {
                 throw error
@@ -29,7 +36,9 @@ export const useUserStore = defineStore('user', {
         async fetchUserInfo() {
             try {
                 const res = await getCurrentUser()
-                this.userInfo = res.data
+                this.userInfo = res.data.user || res.data
+                this.permissions = res.data.permissions || []
+                localStorage.setItem('permissions', JSON.stringify(this.permissions))
                 return res
             } catch (error) {
                 throw error
@@ -40,7 +49,9 @@ export const useUserStore = defineStore('user', {
         logout() {
             this.token = ''
             this.userInfo = null
+            this.permissions = []
             localStorage.removeItem('token')
+            localStorage.removeItem('permissions')
         },
     },
 })

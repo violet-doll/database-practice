@@ -92,12 +92,12 @@ func initDefaultData() {
 
 	log.Println("默认角色初始化完成")
 
-	// 初始化权限并为 admin 角色分配所有权限
-	initPermissionsAndAssignToAdmin()
+	// 初始化权限并为各角色分配默认权限
+	initPermissionsAndAssignRoles()
 }
 
-// initPermissionsAndAssignToAdmin 初始化权限并为 admin 角色分配所有权限
-func initPermissionsAndAssignToAdmin() {
+// initPermissionsAndAssignRoles 初始化权限并为各角色分配默认权限
+func initPermissionsAndAssignRoles() {
 	// 定义所有权限（与 admin_permissions.go 中的定义保持一致）
 	allPermissions := []models.Permission{
 		// 学生管理权限
@@ -184,17 +184,14 @@ func initPermissionsAndAssignToAdmin() {
 		return
 	}
 
-	// 检查 admin 角色是否已有权限
+	// 为 admin 角色分配所有权限
 	count := DB.Model(&adminRole).Association("Permissions").Count()
 	if count == 0 {
-		// admin 角色还没有权限，分配所有权限
 		var permissions []models.Permission
 		if err := DB.Find(&permissions).Error; err != nil {
 			log.Printf("获取权限列表失败: %v", err)
 			return
 		}
-
-		// 为 admin 角色分配所有权限
 		if err := DB.Model(&adminRole).Association("Permissions").Replace(permissions); err != nil {
 			log.Printf("为 admin 角色分配权限失败: %v", err)
 		} else {
@@ -202,6 +199,80 @@ func initPermissionsAndAssignToAdmin() {
 		}
 	} else {
 		log.Printf("admin 角色已有 %d 个权限，跳过初始化", count)
+	}
+
+	// 为 teacher 角色分配权限
+	var teacherRole models.Role
+	if err := DB.Where("role_name = ?", "teacher").First(&teacherRole).Error; err == nil {
+		count := DB.Model(&teacherRole).Association("Permissions").Count()
+		if count == 0 {
+			// 教师权限：查看和创建课程、成绩、考勤、奖惩等
+			teacherPerms := []string{
+				"course:read", "course:create", "course:update",
+				"schedule:read", "schedule:create", "schedule:update",
+				"enrollment:read", "enrollment:create", "enrollment:delete",
+				"grade:read", "grade:create", "grade:update",
+				"attendance:read", "attendance:create", "attendance:delete",
+				"reward:read", "reward:create", "reward:delete",
+				"student:read", "class:read",
+				"notification:read", "notification:create",
+			}
+			assignPermissionsToRole(&teacherRole, teacherPerms, "teacher")
+		}
+	}
+
+	// 为学生角色分配权限
+	var studentRole models.Role
+	if err := DB.Where("role_name = ?", "student").First(&studentRole).Error; err == nil {
+		count := DB.Model(&studentRole).Association("Permissions").Count()
+		if count == 0 {
+			// 学生权限：查看自己的信息、课程、成绩、考勤、奖惩
+			studentPerms := []string{
+				"student:read",      // 只能查看自己的信息（需要在业务逻辑中限制）
+				"course:read",
+				"enrollment:read",
+				"grade:read",        // 只能查看自己的成绩（需要在业务逻辑中限制）
+				"attendance:read",  // 只能查看自己的考勤（需要在业务逻辑中限制）
+				"reward:read",      // 只能查看自己的奖惩（需要在业务逻辑中限制）
+				"notification:read",
+			}
+			assignPermissionsToRole(&studentRole, studentPerms, "student")
+		}
+	}
+
+	// 为家长角色分配权限
+	var parentRole models.Role
+	if err := DB.Where("role_name = ?", "parent").First(&parentRole).Error; err == nil {
+		count := DB.Model(&parentRole).Association("Permissions").Count()
+		if count == 0 {
+			// 家长权限：查看关联学生的成绩、考勤、奖惩
+			parentPerms := []string{
+				"student:read",     // 只能查看关联学生的信息（需要在业务逻辑中限制）
+				"grade:read",        // 只能查看关联学生的成绩（需要在业务逻辑中限制）
+				"attendance:read",   // 只能查看关联学生的考勤（需要在业务逻辑中限制）
+				"reward:read",       // 只能查看关联学生的奖惩（需要在业务逻辑中限制）
+				"notification:read",
+			}
+			assignPermissionsToRole(&parentRole, parentPerms, "parent")
+		}
+	}
+}
+
+// assignPermissionsToRole 为角色分配权限
+func assignPermissionsToRole(role *models.Role, permissionStrings []string, roleName string) {
+	var permissions []models.Permission
+	for _, permStr := range permissionStrings {
+		var perm models.Permission
+		if err := DB.Where("permission = ?", permStr).First(&perm).Error; err == nil {
+			permissions = append(permissions, perm)
+		}
+	}
+	if len(permissions) > 0 {
+		if err := DB.Model(role).Association("Permissions").Replace(permissions); err != nil {
+			log.Printf("为 %s 角色分配权限失败: %v", roleName, err)
+		} else {
+			log.Printf("已为 %s 角色分配 %d 个权限", roleName, len(permissions))
+		}
 	}
 }
 

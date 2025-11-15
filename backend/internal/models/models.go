@@ -9,8 +9,8 @@ type User struct {
 	RoleID   uint   `json:"role_id"`
 	Role     Role   `gorm:"foreignKey:RoleID" json:"role"` // Gorm 自动关联
 	IsActive bool   `gorm:"default:true" json:"is_active"`
-	UserID   uint   `json:"user_id"`                           // 关联学生或教师 (多态关联)
-	UserType string `gorm:"type:varchar(20)" json:"user_type"` // "student", "teacher", "admin"
+	UserID   uint   `json:"user_id"`                           // 关联学生、教师或家长 (多态关联)
+	UserType string `gorm:"type:varchar(20)" json:"user_type"` // "student", "teacher", "admin", "parent"
 }
 
 // 2. 角色表 (RBAC)
@@ -55,9 +55,11 @@ type Student struct {
 type Parent struct {
 	gorm.Model
 	StudentID uint   `gorm:"index" json:"student_id"` // 关联学生
+	Student   Student `gorm:"foreignKey:StudentID" json:"student,omitempty"` // 关联学生信息
 	Name      string `gorm:"type:varchar(100)" json:"name"`
 	Phone     string `gorm:"type:varchar(20);not null" json:"phone"`
 	Relation  string `gorm:"type:varchar(20)" json:"relation"` // e.g., "父亲", "母亲"
+	UserID    uint   `json:"user_id"` // 关联登录用户 User (如果家长可以登录)
 }
 
 // 5. 教师表

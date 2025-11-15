@@ -13,71 +13,96 @@
           text-color="#bfcbd9"
           active-text-color="#409eff"
         >
+          <!-- 数据看板：所有已登录用户可见 -->
           <el-menu-item index="/dashboard">
             <el-icon><DataAnalysis /></el-icon>
             <span>数据看板</span>
           </el-menu-item>
-          <el-menu-item index="/students">
+          
+          <!-- 学生管理：需要 student:read 权限 -->
+          <el-menu-item v-if="userStore.hasPermission('student:read')" index="/students">
             <el-icon><User /></el-icon>
             <span>学生管理</span>
           </el-menu-item>
-          <el-menu-item index="/classes">
+          
+          <!-- 班级管理：需要 class:read 权限 -->
+          <el-menu-item v-if="userStore.hasPermission('class:read')" index="/classes">
             <el-icon><School /></el-icon>
             <span>班级管理</span>
           </el-menu-item>
-          <el-menu-item index="/courses">
+          
+          <!-- 课程管理：需要 course:read 权限 -->
+          <el-menu-item v-if="userStore.hasPermission('course:read')" index="/courses">
             <el-icon><Reading /></el-icon>
             <span>课程管理</span>
           </el-menu-item>
-          <el-menu-item index="/enrollments">
+          
+          <!-- 选课管理：需要 enrollment:read 权限 -->
+          <el-menu-item v-if="userStore.hasPermission('enrollment:read')" index="/enrollments">
             <el-icon><DocumentAdd /></el-icon>
             <span>选课管理</span>
           </el-menu-item>
-          <el-menu-item index="/schedule">
+          
+          <!-- 排课管理：需要 schedule:read 权限 -->
+          <el-menu-item v-if="userStore.hasPermission('schedule:read')" index="/schedule">
             <el-icon><Grid /></el-icon>
             <span>排课管理</span>
           </el-menu-item>
-          <el-menu-item index="/grades">
+          
+          <!-- 成绩管理：需要 grade:read 权限 -->
+          <el-menu-item v-if="userStore.hasPermission('grade:read')" index="/grades">
             <el-icon><Document /></el-icon>
             <span>成绩管理</span>
           </el-menu-item>
-          <el-menu-item index="/attendance">
+          
+          <!-- 考勤管理：需要 attendance:read 权限 -->
+          <el-menu-item v-if="userStore.hasPermission('attendance:read')" index="/attendance">
             <el-icon><Calendar /></el-icon>
             <span>考勤管理</span>
           </el-menu-item>
-          <el-menu-item index="/rewards">
+          
+          <!-- 奖惩管理：需要 reward:read 权限 -->
+          <el-menu-item v-if="userStore.hasPermission('reward:read')" index="/rewards">
             <el-icon><Medal /></el-icon>
             <span>奖惩管理</span>
           </el-menu-item>
-          <el-menu-item index="/notifications">
+          
+          <!-- 通知管理：需要 notification:read 权限 -->
+          <el-menu-item v-if="userStore.hasPermission('notification:read')" index="/notifications">
             <el-icon><Bell /></el-icon>
             <span>通知管理</span>
           </el-menu-item>
-          <el-menu-item index="/parents">
+          
+          <!-- 家长联系方式：需要 parent:read 权限 -->
+          <el-menu-item v-if="userStore.hasPermission('parent:read')" index="/parents">
             <el-icon><User /></el-icon>
             <span>家长联系方式</span>
           </el-menu-item>
-        <!-- 管理员：系统设置菜单，仅 admin 可见 -->
-        <template v-if="isAdmin">
-          <el-sub-menu index="/admin">
-            <template #title>
-              <el-icon><Setting /></el-icon>
-              <span>系统设置</span>
-            </template>
-            <el-menu-item index="/admin/overview">
-              <el-icon><DataAnalysis /></el-icon>
-              <span>统计概览</span>
-            </el-menu-item>
-            <el-menu-item index="/admin/users">
-              <el-icon><User /></el-icon>
-              <span>用户与权限</span>
-            </el-menu-item>
-            <el-menu-item index="/admin/roles">
-              <el-icon><User /></el-icon>
-              <span>角色管理</span>
-            </el-menu-item>
-          </el-sub-menu>
-        </template>
+          
+          <!-- 管理员：系统设置菜单，需要 admin:user:read 或 admin:role:read 权限 -->
+          <template v-if="userStore.hasPermission('admin:user:read') || userStore.hasPermission('admin:role:read')">
+            <el-sub-menu index="/admin">
+              <template #title>
+                <el-icon><Setting /></el-icon>
+                <span>系统设置</span>
+              </template>
+              <!-- 统计概览：需要 admin:stats:read 权限 -->
+              <el-menu-item v-if="userStore.hasPermission('admin:stats:read')" index="/admin/overview">
+                <el-icon><DataAnalysis /></el-icon>
+                <span>统计概览</span>
+              </el-menu-item>
+              <!-- 用户与权限：需要 admin:user:read 权限 -->
+              <el-menu-item v-if="userStore.hasPermission('admin:user:read')" index="/admin/users">
+                <el-icon><User /></el-icon>
+                <span>用户与权限</span>
+              </el-menu-item>
+              <!-- 角色管理：需要 admin:role:read 权限 -->
+              <el-menu-item v-if="userStore.hasPermission('admin:role:read')" index="/admin/roles">
+                <el-icon><User /></el-icon>
+                <span>角色管理</span>
+              </el-menu-item>
+            </el-sub-menu>
+          </template>
         </el-menu>
       </el-aside>
 
@@ -141,8 +166,6 @@ const userStore = useUserStore()
 
 const activeMenu = computed(() => route.path)
 const currentTitle = computed(() => route.meta.title || '')
-
-const isAdmin = computed(() => userStore.userInfo?.role?.role_name === 'admin')
 
 const handleCommand = (command) => {
   if (command === 'logout') {

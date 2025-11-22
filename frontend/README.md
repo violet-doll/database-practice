@@ -33,6 +33,10 @@ frontend/
 │   │   ├── Login.vue
 │   │   ├── Dashboard.vue
 │   │   ├── Students.vue
+│   │   ├── Profile.vue   # 个人中心
+│   │   ├── AdminUsers.vue
+│   │   ├── AdminRoles.vue
+│   │   ├── AttendanceStats.vue
 │   │   └── ...
 │   ├── App.vue
 │   └── main.js
@@ -96,6 +100,10 @@ npm run preview
 - ✅ **管理员统计概览**：系统数据统计展示
 - ✅ **用户与权限管理**：用户CRUD、角色分配、权限管理
 - ✅ **角色管理**：角色CRUD、权限关联
+
+#### 其他
+- ✅ **个人中心**：查看个人信息、修改密码
+- ✅ **考勤统计**：可视化展示考勤数据
 
 ### 待优化功能
 

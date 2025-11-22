@@ -24,3 +24,12 @@ export const getCurrentUser = () => {
         method: 'get',
     })
 }
+
+// 修改密码
+export const updatePassword = (data) => {
+    return request({
+        url: '/auth/password',
+        method: 'put',
+        data,
+    })
+}

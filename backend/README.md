@@ -150,6 +150,19 @@ go run ./cmd/main.go
 - **DELETE** `/api/v1/students/:id`
 - Headers: `Authorization: Bearer {token}`
 
+### 个人中心
+
+#### 修改密码
+- **PUT** `/api/v1/auth/password`
+- Headers: `Authorization: Bearer {token}`
+- 请求体:
+  ```json
+  {
+    "old_password": "old_password",
+    "new_password": "new_password"
+  }
+  ```
+
 ## 默认数据
 
 系统启动时会自动创建以下默认角色：
@@ -191,6 +204,13 @@ Gorm 会在启动时自动迁移数据表结构。如果修改了模型，重启
 - ✅ **角色管理**：角色CRUD、权限关联
 - ✅ **权限管理**：权限列表、角色权限分配
 - ✅ **统计概览**：系统数据统计（用户、学生、课程、成绩、考勤等）
+
+### API 补充说明 (管理员)
+
+#### 权限管理
+- **GET** `/api/v1/admin/permissions` - 获取所有权限列表
+- **GET** `/api/v1/admin/roles/:id/permissions` - 获取指定角色的权限
+- **POST** `/api/v1/admin/roles/:id/permissions` - 更新指定角色的权限
 
 ## 待优化功能
 

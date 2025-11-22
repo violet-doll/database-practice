@@ -49,8 +49,8 @@ func GetEnrollments(c *gin.Context) {
 }
 
 type CreateEnrollmentRequest struct {
-	StudentID uint `json:"student_id" binding:"required"`
-	CourseID  uint `json:"course_id" binding:"required"`
+	StudentNumber string `json:"student_number" binding:"required"` // 学号
+	CourseID      uint   `json:"course_id" binding:"required"`
 }
 
 // CreateEnrollment 创建选课记录
@@ -63,17 +63,17 @@ func CreateEnrollment(c *gin.Context) {
 
 	db := config.GetDB()
 
-	// 检查该 Enrollment 是否已存在
-	var existingEnrollment models.Enrollment
-	if err := db.Where("student_id = ? AND course_id = ?", req.StudentID, req.CourseID).First(&existingEnrollment).Error; err == nil {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 400, "message": "该选课记录已存在"})
+	// 根据学号查找学生
+	var student models.Student
+	if err := db.Where("student_id = ?", req.StudentNumber).First(&student).Error; err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 400, "message": "学生不存在（学号不存在）", "error": err.Error()})
 		return
 	}
 
-	// 验证学生是否存在
-	var student models.Student
-	if err := db.First(&student, req.StudentID).Error; err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 400, "message": "学生不存在", "error": err.Error()})
+	// 检查该 Enrollment 是否已存在
+	var existingEnrollment models.Enrollment
+	if err := db.Where("student_id = ? AND course_id = ?", student.ID, req.CourseID).First(&existingEnrollment).Error; err == nil {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 400, "message": "该选课记录已存在"})
 		return
 	}
 
@@ -86,7 +86,7 @@ func CreateEnrollment(c *gin.Context) {
 
 	// 创建新的 Enrollment 记录
 	enrollment := models.Enrollment{
-		StudentID: req.StudentID,
+		StudentID: student.ID,
 		CourseID:  req.CourseID,
 	}
 

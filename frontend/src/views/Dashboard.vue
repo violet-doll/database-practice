@@ -81,6 +81,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { User, School, Reading, UserFilled, Document, Calendar, Medal, Bell } from '@element-plus/icons-vue'
+import { fetchAdminOverview } from '@/api/admin'
 
 const stats = ref({
   studentCount: 0,
@@ -98,13 +99,20 @@ const modules = [
   { name: '奖惩管理', icon: Medal, color: '#ff9800', desc: '学生奖惩记录' },
 ]
 
-onMounted(() => {
-  // TODO: 从API获取统计数据
-  stats.value = {
-    studentCount: 0,
-    classCount: 0,
-    courseCount: 0,
-    teacherCount: 0,
+onMounted(async () => {
+  try {
+    const res = await fetchAdminOverview()
+    if (res.code === 200) {
+      const data = res.data
+      stats.value = {
+        studentCount: data.students_total,
+        classCount: data.classes_total,
+        courseCount: data.courses_total,
+        teacherCount: data.teachers_total,
+      }
+    }
+  } catch (error) {
+    console.error('获取统计数据失败:', error)
   }
 })
 </script>

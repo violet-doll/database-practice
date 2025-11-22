@@ -74,8 +74,8 @@
     <!-- 添加选课弹窗 -->
     <el-dialog v-model="dialogVisible" title="添加选课" width="520px">
       <el-form ref="enrollmentFormRef" :model="enrollmentForm" :rules="enrollmentRules" label-width="100px">
-        <el-form-item label="学生ID" prop="student_id">
-          <el-input v-model.number="enrollmentForm.student_id" type="number" />
+        <el-form-item label="学号" prop="student_number">
+          <el-input v-model="enrollmentForm.student_number" />
         </el-form-item>
         <el-form-item label="课程ID" prop="course_id">
           <el-input v-model.number="enrollmentForm.course_id" type="number" />
@@ -136,9 +136,9 @@ const resetSearch = () => {
 const dialogVisible = ref(false)
 const enrollmentFormRef = ref(null)
 const submitting = ref(false)
-const enrollmentForm = reactive({ student_id: '', course_id: '' })
+const enrollmentForm = reactive({ student_number: '', course_id: '' })
 const enrollmentRules = {
-  student_id: [{ required: true, message: '请输入学生ID', trigger: 'blur' }],
+  student_number: [{ required: true, message: '请输入学号', trigger: 'blur' }],
   course_id: [{ required: true, message: '请输入课程ID', trigger: 'blur' }],
 }
 
@@ -150,13 +150,13 @@ const submitEnrollment = async () => {
     submitting.value = true
     try {
       await createEnrollment({
-        student_id: Number(enrollmentForm.student_id),
+        student_number: enrollmentForm.student_number,
         course_id: Number(enrollmentForm.course_id),
       })
       ElMessage.success('添加选课成功')
       dialogVisible.value = false
       // 重置表单
-      enrollmentForm.student_id = ''
+      enrollmentForm.student_number = ''
       enrollmentForm.course_id = ''
       // 刷新列表
       await fetchEnrollments()

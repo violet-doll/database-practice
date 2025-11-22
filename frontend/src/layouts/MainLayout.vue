@@ -13,8 +13,8 @@
           text-color="#bfcbd9"
           active-text-color="#409eff"
         >
-          <!-- 数据看板：所有已登录用户可见 -->
-          <el-menu-item index="/dashboard">
+          <!-- 数据看板：需要 admin:stats:read 权限 -->
+          <el-menu-item v-if="userStore.hasPermission('admin:stats:read')" index="/dashboard">
             <el-icon><DataAnalysis /></el-icon>
             <span>数据看板</span>
           </el-menu-item>
@@ -179,7 +179,7 @@ const handleCommand = (command) => {
       ElMessage.success('退出登录成功')
     })
   } else if (command === 'profile') {
-    ElMessage.info('个人信息页面开发中...')
+    router.push('/profile')
   }
 }
 </script>

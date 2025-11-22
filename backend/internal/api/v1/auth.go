@@ -208,3 +208,67 @@ func Logout(c *gin.Context) {
 		"message": "登出成功",
 	})
 }
+
+// UpdatePasswordRequest 修改密码请求
+type UpdatePasswordRequest struct {
+	OldPassword string `json:"old_password" binding:"required"`
+	NewPassword string `json:"new_password" binding:"required,min=6"`
+}
+
+// UpdatePassword 修改密码
+func UpdatePassword(c *gin.Context) {
+	var req UpdatePasswordRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"code":    400,
+			"message": "参数错误",
+			"error":   err.Error(),
+		})
+		return
+	}
+
+	userID, _ := c.Get("user_id")
+	var user models.User
+	db := config.GetDB()
+
+	if err := db.First(&user, userID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{
+			"code":    404,
+			"message": "用户不存在",
+		})
+		return
+	}
+
+	// 验证旧密码
+	if !utils.CheckPasswordHash(req.OldPassword, user.Password) {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"code":    400,
+			"message": "旧密码错误",
+		})
+		return
+	}
+
+	// 更新密码
+	hashedPassword, err := utils.HashPassword(req.NewPassword)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"code":    500,
+			"message": "密码加密失败",
+		})
+		return
+	}
+
+	user.Password = hashedPassword
+	if err := db.Save(&user).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"code":    500,
+			"message": "密码更新失败",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"code":    200,
+		"message": "密码修改成功",
+	})
+}

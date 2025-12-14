@@ -6,23 +6,34 @@
 
 本系统旨在为学校或教育机构提供一个高效、全面的学生信息管理平台，涵盖学籍管理、课程管理、成绩管理、考勤管理、奖惩管理等多个功能模块。
 
+### 功能亮点
+
+- 🔐 **完善的权限系统**：基于 RBAC 的细粒度权限控制，支持角色和权限自定义
+- 📊 **数据可视化**：使用 ECharts 展示统计数据，直观了解系统运行状态
+- 🎓 **全面的学生管理**：学生信息、班级、课程、成绩、考勤、奖惩一体化管理
+- 👨‍🏫 **灵活的排课系统**：支持课程安排、教室分配、时间管理
+- 📱 **家校互通**：家长联系管理和通知系统，便于家校沟通
+- 🔍 **高效查询**：支持分页、搜索、筛选等多种查询方式
+- 🎨 **现代化界面**：基于 Element Plus 的响应式设计，操作简单直观
+
 ## 技术栈
 
 ### 后端
 - **语言**: Go 1.21+
 - **Web框架**: Gin
 - **ORM**: Gorm
-- **数据库**: MySQL 9.2
+- **数据库**: MySQL 8.0+
 - **认证**: JWT (JSON Web Tokens)
 - **密码加密**: bcrypt
 
 ### 前端
-- **框架**: Vue 3
-- **构建工具**: Vite
-- **路由**: Vue Router 4
-- **状态管理**: Pinia
-- **HTTP客户端**: Axios
-- **UI组件库**: Element Plus
+- **框架**: Vue 3.3+
+- **构建工具**: Vite 5
+- **路由**: Vue Router 4.2+
+- **状态管理**: Pinia 2.1+
+- **HTTP客户端**: Axios 1.6+
+- **UI组件库**: Element Plus 2.4+
+- **数据可视化**: ECharts 6.0+
 
 ## 项目结构
 
@@ -30,26 +41,36 @@
 student-management-system/
 ├── backend/                # 后端服务
 │   ├── cmd/               # 程序入口
-│   ├── config/            # 配置文件
+│   │   ├── main.go       # 主程序
+│   │   └── create_admin.go # 创建管理员工具
+│   ├── config/            # 配置文件和数据库初始化
+│   │   ├── config.ini    # 配置文件
+│   │   └── database.go   # 数据库连接
 │   ├── internal/          # 内部代码
-│   │   ├── api/          # API处理器
+│   │   ├── api/          # API路由和处理器
+│   │   │   ├── router.go # 路由配置
+│   │   │   └── v1/       # v1版本API处理器
 │   │   ├── middleware/   # 中间件
+│   │   │   ├── auth.go   # JWT认证和权限中间件
+│   │   │   └── cors.go   # CORS中间件
 │   │   ├── models/       # 数据模型
-│   │   ├── repository/   # 数据仓库层
-│   │   ├── service/      # 业务逻辑层
+│   │   │   └── models.go # 所有数据模型定义
 │   │   └── utils/        # 工具函数
+│   │       ├── jwt.go    # JWT工具
+│   │       └── password.go # 密码加密
+│   ├── scripts/           # 脚本工具
 │   └── go.mod
 ├── frontend/              # 前端应用
 │   ├── src/
-│   │   ├── api/          # API接口
-│   │   ├── components/   # 公共组件
+│   │   ├── api/          # API接口封装
 │   │   ├── layouts/      # 布局组件
 │   │   ├── router/       # 路由配置
-│   │   ├── store/        # 状态管理
+│   │   ├── store/        # Pinia状态管理
 │   │   ├── utils/        # 工具函数
-│   │   └── views/        # 页面视图
+│   │   └── views/        # 页面视图组件
 │   └── package.json
-├── docs/                  # 软件工程文档
+├── docs/                  # 项目文档
+│   └── init.sql          # 数据库初始化脚本
 └── README.md
 ```
 
@@ -109,15 +130,20 @@ cd student-management-system
 CREATE DATABASE student_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 ```
 
+可选：使用 `docs/init.sql` 初始化数据库表结构和基础数据。
+
 ### 3. 启动后端
 
 ```bash
 cd backend
 
-# 复制配置文件
-copy .env.example .env
-
 # 修改 .env 或 config/config.ini 中的数据库配置
+# .env 示例：
+# DB_HOST=localhost
+# DB_PORT=3306
+# DB_USER=root
+# DB_PASSWORD=your_password
+# DB_NAME=student_db
 
 # 安装依赖
 go mod tidy
@@ -144,18 +170,28 @@ npm run dev
 
 ### 5. 创建管理员账号
 
-首次运行需要手动创建管理员账号。可以通过以下方式：
+首次运行需要创建管理员账号。推荐使用以下方式：
 
-1. 直接在数据库中插入记录
-2. 使用API创建（需要先临时关闭认证中间件）
-3. 使用数据库初始化脚本
+**方式一：使用创建管理员工具**
+```bash
+cd backend
+go run ./cmd/create_admin.go
+```
 
-示例SQL：
+**方式二：使用初始化脚本**
+```bash
+mysql -u root -p student_db < docs/init.sql
+```
 
+**方式三：手动在数据库中插入**
 ```sql
--- 插入管理员用户（密码: admin123，已使用bcrypt加密）
+-- 先创建角色（如果不存在）
+INSERT INTO roles (role_name, created_at, updated_at) VALUES ('管理员', NOW(), NOW());
+
+-- 插入管理员用户（密码: admin123）
+-- 注意：需要使用bcrypt加密后的密码哈希值
 INSERT INTO users (username, password, role_id, is_active, user_type, created_at, updated_at)
-VALUES ('admin', '$2a$10$...(bcrypt hash)...', 1, 1, 'admin', NOW(), NOW());
+VALUES ('admin', '$2a$10$YourBcryptHashHere', 1, 1, 'admin', NOW(), NOW());
 ```
 
 ## 默认账号
@@ -293,28 +329,92 @@ GET    /api/v1/admin/stats/overview                 # 系统概览统计
 
 ### 后端开发
 
-1. 在 `internal/models/` 中定义数据模型
-2. 在 `internal/api/v1/` 中创建API处理器
-3. 在 `internal/api/router.go` 中注册路由
-4. 使用中间件进行权限控制
+项目采用简洁的分层架构，所有业务逻辑直接在 API 处理器中实现：
+
+1. **定义数据模型**：在 `internal/models/models.go` 中添加新的数据结构
+2. **创建API处理器**：在 `internal/api/v1/` 中创建对应的处理器文件
+3. **注册路由**：在 `internal/api/router.go` 中注册新的路由和权限
+4. **权限控制**：使用 `AuthMiddleware()` 和 `PermissionMiddleware()` 进行认证和授权
+
+**示例**：添加新功能模块
+```go
+// 1. 在 models.go 中定义模型
+type NewFeature struct {
+    gorm.Model
+    Name string `json:"name"`
+}
+
+// 2. 在 v1/ 中创建 new_feature.go
+func GetNewFeatures(c *gin.Context) {
+    // 实现业务逻辑
+}
+
+// 3. 在 router.go 中注册路由
+newFeatures := apiV1.Group("/new-features")
+newFeatures.Use(middleware.AuthMiddleware())
+{
+    newFeatures.GET("", middleware.PermissionMiddleware("feature:read"), v1.GetNewFeatures)
+}
+```
 
 ### 前端开发
 
-1. 在 `src/api/` 中定义API接口
-2. 在 `src/views/` 中创建页面组件
-3. 在 `src/router/` 中注册路由
-4. 使用Pinia进行状态管理
+前端采用 Vue 3 Composition API + Element Plus 组件库：
 
-## 软件工程文档
+1. **定义API接口**：在 `src/api/` 中创建对应的 API 封装文件
+2. **创建页面组件**：在 `src/views/` 中创建 Vue 组件
+3. **注册路由**：在 `src/router/index.js` 中添加路由配置
+4. **状态管理**：如需全局状态，在 `src/store/` 中使用 Pinia
 
-所有软件工程相关文档存放在 `docs/` 目录下：
+**示例**：添加新页面
+```javascript
+// 1. 在 api/ 中定义接口
+export const getNewFeatures = (params) => {
+    return request.get('/api/v1/new-features', { params })
+}
 
-- 需求分析（含用例图）
-- 概要设计（含系统架构图）
-- 详细设计（含序列图、活动图、类图）
-- 测试报告
-- 项目总结
-- 原型系统截图
+// 2. 在 views/ 中创建组件
+<template>
+    <div>
+        <!-- 使用 Element Plus 组件 -->
+    </div>
+</template>
+
+// 3. 在 router/index.js 中注册
+{
+    path: '/new-features',
+    component: () => import('@/views/NewFeatures.vue'),
+    meta: { requiresAuth: true }
+}
+```
+
+### 数据库迁移
+
+项目使用 GORM 的自动迁移功能：
+
+```go
+// 在 config/database.go 中添加新模型
+db.AutoMigrate(&models.NewFeature{})
+```
+
+## 项目特点
+
+### 架构设计
+- **前后端分离**：前端 Vue 3 + 后端 Go Gin，通过 RESTful API 通信
+- **模块化设计**：清晰的代码组织结构，易于维护和扩展
+- **数据库设计**：使用 GORM 进行 ORM 映射，支持自动迁移
+
+### 安全性
+- **JWT 认证**：基于 Token 的无状态认证机制
+- **密码加密**：使用 bcrypt 算法加密存储密码
+- **RBAC 权限控制**：细粒度的角色权限管理
+- **权限中间件**：API 级别的权限验证
+
+### 用户体验
+- **响应式设计**：基于 Element Plus 的现代化 UI
+- **数据可视化**：使用 ECharts 展示统计数据
+- **分页和搜索**：支持大数据量的高效查询
+- **表单验证**：完善的前后端数据验证
 
 ## 注意事项
 
@@ -333,16 +433,35 @@ GET    /api/v1/admin/stats/overview                 # 系统概览统计
    - 配置反向代理（Nginx）
    - 设置日志轮转
 
-## 待优化
+## 待优化与改进
 
-- [ ] 添加单元测试
-- [ ] 添加集成测试
-- [ ] 完善错误处理
-- [ ] 添加日志系统
-- [ ] 性能优化
-- [ ] 代码文档
-- [ ] Docker支持
-- [ ] CI/CD流程
+### 功能增强
+- [ ] **数据导入导出**：支持 Excel 格式的批量导入导出
+- [ ] **批量操作**：支持批量删除、批量修改等操作
+- [ ] **高级搜索**：多条件组合搜索、模糊查询优化
+- [ ] **操作日志**：记录用户操作历史，便于审计
+- [ ] **数据备份**：自动化数据备份和恢复机制
+- [ ] **系统设置**：可配置的系统参数管理
+
+### 技术优化
+- [ ] **单元测试**：为核心业务逻辑添加单元测试
+- [ ] **集成测试**：API 接口的自动化测试
+- [ ] **错误处理**：统一的错误处理和日志记录机制
+- [ ] **日志系统**：结构化日志，支持日志级别和轮转
+- [ ] **性能优化**：数据库查询优化、缓存机制
+- [ ] **API文档**：使用 Swagger 生成 API 文档
+
+### 部署与运维
+- [ ] **Docker支持**：容器化部署方案
+- [ ] **CI/CD流程**：自动化构建、测试和部署
+- [ ] **监控告警**：系统性能监控和异常告警
+- [ ] **负载均衡**：支持水平扩展
+
+### 安全增强
+- [ ] **API限流**：防止接口滥用
+- [ ] **SQL注入防护**：参数化查询验证
+- [ ] **XSS防护**：前端输入过滤和转义
+- [ ] **CSRF防护**：跨站请求伪造防护
 
 ## 贡献指南
 
@@ -364,4 +483,11 @@ MIT License
 
 **项目状态**: ✅ 核心功能已完成，持续优化中
 
-**最后更新**: 2025年1月
+**最后更新**: 2025年12月
+
+## 技术支持
+
+如有问题或建议，请通过以下方式联系：
+- 提交 Issue
+- 发起 Pull Request
+- 查看项目文档

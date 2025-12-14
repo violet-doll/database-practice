@@ -128,6 +128,13 @@ func SetupRouter() *gin.Engine {
 			notifications.POST("", middleware.PermissionMiddleware("notification:create"), v1.CreateNotification)
 		}
 
+		// 数据统计（需要认证 和 特定权限，通常开放给管理员或教师）
+		stats := apiV1.Group("/stats")
+		stats.Use(middleware.AuthMiddleware())
+		{
+			stats.GET("/dashboard", middleware.PermissionMiddleware("admin:stats:read"), v1.GetDashboardStats)
+		}
+
 		// 管理员模块（需要认证 和 特定权限）
 		admin := apiV1.Group("/admin")
 		admin.Use(middleware.AuthMiddleware()) // AuthMiddleware 必须在前面

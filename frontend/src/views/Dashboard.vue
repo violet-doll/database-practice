@@ -50,38 +50,91 @@
       </el-col>
     </el-row>
     
+    <!-- 数据可视化图表区域 -->
     <el-row :gutter="20" style="margin-top: 20px">
-      <el-col :span="24">
+      <!-- 学生性别分布饼图 -->
+      <el-col :span="12">
         <el-card>
           <template #header>
             <div class="card-header">
-              <span>欢迎使用学生管理系统</span>
+              <span>学生性别分布</span>
             </div>
           </template>
-          <div class="welcome-content">
-            <h2>系统功能模块</h2>
-            <el-row :gutter="20" style="margin-top: 20px">
-              <el-col :span="8" v-for="module in modules" :key="module.name">
-                <div class="module-card">
-                  <el-icon :size="40" :color="module.color">
-                    <component :is="module.icon" />
-                  </el-icon>
-                  <h3>{{ module.name }}</h3>
-                  <p>{{ module.desc }}</p>
-                </div>
-              </el-col>
-            </el-row>
+          <div ref="genderChartRef" style="width: 100%; height: 400px;"></div>
+        </el-card>
+      </el-col>
+      
+      <!-- 考勤状态统计柱状图 -->
+      <el-col :span="12">
+        <el-card>
+          <template #header>
+            <div class="card-header">
+              <span>考勤状态统计</span>
+            </div>
+          </template>
+          <div ref="attendanceChartRef" style="width: 100%; height: 400px;"></div>
+        </el-card>
+      </el-col>
+    </el-row>
+
+    <el-row :gutter="20" style="margin-top: 20px">
+      <!-- 成绩分布统计柱状图 -->
+      <el-col :span="12">
+        <el-card>
+          <template #header>
+            <div class="card-header">
+              <span>成绩分布统计</span>
+            </div>
+          </template>
+          <div ref="gradeDistChartRef" style="width: 100%; height: 400px;"></div>
+        </el-card>
+      </el-col>
+
+      <!-- 热门课程统计柱状图 -->
+      <el-col :span="12">
+        <el-card>
+          <template #header>
+            <div class="card-header">
+              <span>热门课程 Top 5</span>
+            </div>
+          </template>
+          <div ref="coursePopChartRef" style="width: 100%; height: 400px;"></div>
+        </el-card>
+      </el-col>
+    </el-row>
+    
+    <el-row :gutter="20" style="margin-top: 20px">
+      <!-- 成绩统计信息卡片 -->
+      <el-col :span="12">
+        <el-card>
+          <template #header>
+            <div class="card-header">
+              <span>成绩统计</span>
+            </div>
+          </template>
+          <div class="grade-stats">
+            <div class="grade-stat-item">
+              <div class="grade-stat-label">平均分</div>
+              <div class="grade-stat-value">{{ dashboardStats.grade_stats?.average_score?.toFixed(2) || '0.00' }}</div>
+            </div>
+            <div class="grade-stat-item">
+              <div class="grade-stat-label">成绩记录总数</div>
+              <div class="grade-stat-value">{{ dashboardStats.grade_stats?.total_grades || 0 }}</div>
+            </div>
           </div>
         </el-card>
       </el-col>
+      
     </el-row>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, nextTick } from 'vue'
 import { User, School, Reading, UserFilled, Document, Calendar, Medal, Bell } from '@element-plus/icons-vue'
 import { fetchAdminOverview } from '@/api/admin'
+import { fetchDashboardStats } from '@/api/stats'
+import * as echarts from 'echarts'
 
 const stats = ref({
   studentCount: 0,
@@ -90,17 +143,216 @@ const stats = ref({
   teacherCount: 0,
 })
 
-const modules = [
-  { name: '学生管理', icon: User, color: '#409eff', desc: '学生信息的增删改查' },
-  { name: '班级管理', icon: School, color: '#67c23a', desc: '班级信息管理' },
-  { name: '课程管理', icon: Reading, color: '#e6a23c', desc: '课程信息管理' },
-  { name: '成绩管理', icon: Document, color: '#f56c6c', desc: '学生成绩管理' },
-  { name: '考勤管理', icon: Calendar, color: '#909399', desc: '学生考勤记录' },
-  { name: '奖惩管理', icon: Medal, color: '#ff9800', desc: '学生奖惩记录' },
-]
+const dashboardStats = ref({
+  student_gender: {
+    male_count: 0,
+    female_count: 0,
+  },
+  attendance_status: {
+    present: 0,
+    absent: 0,
+    leave: 0,
+    late: 0,
+  },
+  grade_stats: {
+    average_score: 0,
+    total_grades: 0,
+  },
+  class_stats: {
+    total_classes: 0,
+  },
+  course_stats: {
+    total_courses: 0,
+  },
+  grade_distribution: {},
+  course_popularity: [],
+})
+
+const genderChartRef = ref(null)
+const attendanceChartRef = ref(null)
+const gradeDistChartRef = ref(null)
+const coursePopChartRef = ref(null)
+let genderChart = null
+let attendanceChart = null
+let gradeDistChart = null
+let coursePopChart = null
+
+
+
+// 初始化学生性别分布饼图
+const initGenderChart = () => {
+  if (!genderChartRef.value) return
+  
+  genderChart = echarts.init(genderChartRef.value)
+  const option = {
+    tooltip: {
+      trigger: 'item',
+      formatter: '{a} <br/>{b}: {c} ({d}%)'
+    },
+    legend: {
+      orient: 'vertical',
+      left: 'left'
+    },
+    series: [
+      {
+        name: '学生性别',
+        type: 'pie',
+        radius: ['40%', '70%'],
+        avoidLabelOverlap: false,
+        itemStyle: {
+          borderRadius: 10,
+          borderColor: '#fff',
+          borderWidth: 2
+        },
+        label: {
+          show: true,
+          formatter: '{b}: {c}\n({d}%)'
+        },
+        emphasis: {
+          label: {
+            show: true,
+            fontSize: 20,
+            fontWeight: 'bold'
+          }
+        },
+        data: [
+          { value: dashboardStats.value.student_gender.male_count, name: '男', itemStyle: { color: '#5470c6' } },
+          { value: dashboardStats.value.student_gender.female_count, name: '女', itemStyle: { color: '#ee6666' } }
+        ]
+      }
+    ]
+  }
+  genderChart.setOption(option)
+}
+
+// 初始化考勤状态统计柱状图
+const initAttendanceChart = () => {
+  if (!attendanceChartRef.value) return
+  
+  attendanceChart = echarts.init(attendanceChartRef.value)
+  const option = {
+    tooltip: {
+      trigger: 'axis',
+      axisPointer: {
+        type: 'shadow'
+      }
+    },
+    grid: {
+      left: '3%',
+      right: '4%',
+      bottom: '3%',
+      containLabel: true
+    },
+    xAxis: {
+      type: 'category',
+      data: ['出勤', '缺席', '请假', '迟到'],
+      axisTick: {
+        alignWithLabel: true
+      }
+    },
+    yAxis: {
+      type: 'value'
+    },
+    series: [
+      {
+        name: '考勤数量',
+        type: 'bar',
+        barWidth: '60%',
+        data: [
+          { value: dashboardStats.value.attendance_status.present, itemStyle: { color: '#91cc75' } },
+          { value: dashboardStats.value.attendance_status.absent, itemStyle: { color: '#ff7875' } },
+          { value: dashboardStats.value.attendance_status.leave, itemStyle: { color: '#fac858' } },
+          { value: dashboardStats.value.attendance_status.late, itemStyle: { color: '#73c0de' } }
+        ]
+      }
+    ]
+  }
+  attendanceChart.setOption(option)
+}
+
+// 初始化成绩分布图表
+const initGradeDistChart = () => {
+  if (!gradeDistChartRef.value) return
+
+  gradeDistChart = echarts.init(gradeDistChartRef.value)
+  const data = dashboardStats.value.grade_distribution || {}
+  const categories = ['<60', '60-69', '70-79', '80-89', '>=90']
+  const values = categories.map(key => data[key] || 0)
+
+  const option = {
+    tooltip: {
+      trigger: 'axis',
+      axisPointer: { type: 'shadow' }
+    },
+    grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+    xAxis: {
+      type: 'category',
+      data: categories,
+      axisTick: { alignWithLabel: true }
+    },
+    yAxis: { type: 'value' },
+    series: [
+      {
+        name: '人数',
+        type: 'bar',
+        barWidth: '60%',
+        itemStyle: {
+          color: function(params) {
+            const colors = ['#ff7875', '#ff9c6e', '#fac858', '#91cc75', '#3ba272'];
+            return colors[params.dataIndex] || '#5470c6';
+          }
+        },
+        data: values
+      }
+    ]
+  }
+  gradeDistChart.setOption(option)
+}
+
+// 初始化热门课程图表
+const initCoursePopChart = () => {
+  if (!coursePopChartRef.value) return
+
+  coursePopChart = echarts.init(coursePopChartRef.value)
+  const data = dashboardStats.value.course_popularity || []
+  const categories = data.map(item => item.course_name)
+  const values = data.map(item => item.count)
+
+  const option = {
+    tooltip: {
+      trigger: 'axis',
+      axisPointer: { type: 'shadow' }
+    },
+    grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+    xAxis: {
+      type: 'value'
+    },
+    yAxis: {
+      type: 'category',
+      data: categories,
+      axisLabel: { interval: 0, rotate: 0 }
+    },
+    series: [
+      {
+        name: '选课人数',
+        type: 'bar',
+        itemStyle: {
+          color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [
+            { offset: 0, color: '#83bff6' },
+            { offset: 0.5, color: '#188df0' },
+            { offset: 1, color: '#188df0' }
+          ])
+        },
+        data: values
+      }
+    ]
+  }
+  coursePopChart.setOption(option)
+}
 
 onMounted(async () => {
   try {
+    // 获取基础统计数据
     const res = await fetchAdminOverview()
     if (res.code === 200) {
       const data = res.data
@@ -110,6 +362,19 @@ onMounted(async () => {
         courseCount: data.courses_total,
         teacherCount: data.teachers_total,
       }
+    }
+    
+    // 获取详细统计数据用于图表
+    const statsRes = await fetchDashboardStats()
+    if (statsRes.code === 200) {
+      dashboardStats.value = statsRes.data
+      
+      // 等待 DOM 更新后初始化图表
+      await nextTick()
+      initGenderChart()
+      initAttendanceChart()
+      initGradeDistChart()
+      initCoursePopChart()
     }
   } catch (error) {
     console.error('获取统计数据失败:', error)
@@ -192,5 +457,32 @@ onMounted(async () => {
 .module-card p {
   font-size: 14px;
   color: #666;
+}
+
+.card-header {
+  font-weight: bold;
+  font-size: 16px;
+}
+
+.grade-stats {
+  display: flex;
+  justify-content: space-around;
+  padding: 20px 0;
+}
+
+.grade-stat-item {
+  text-align: center;
+}
+
+.grade-stat-label {
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 10px;
+}
+
+.grade-stat-value {
+  font-size: 32px;
+  font-weight: bold;
+  color: #409eff;
 }
 </style>

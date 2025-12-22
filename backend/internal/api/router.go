@@ -83,7 +83,8 @@ func SetupRouter() *gin.Engine {
 		grades := apiV1.Group("/grades")
 		grades.Use(middleware.AuthMiddleware())
 		{
-			grades.GET("", middleware.PermissionMiddleware("grade:read"), v1.GetGrades) // 新增：全部成绩分页列表（可筛选）
+			grades.GET("/audit-logs", middleware.PermissionMiddleware("grade:read"), v1.GetGradeAuditLogs) // 新增：成绩审计日志
+			grades.GET("", middleware.PermissionMiddleware("grade:read"), v1.GetGrades)                    // 新增：全部成绩分页列表（可筛选）
 			grades.GET("/student/:id", middleware.PermissionMiddleware("grade:read"), v1.GetGradesByStudent)
 			grades.GET("/course/:id", middleware.PermissionMiddleware("grade:read"), v1.GetGradesByCourse)
 			grades.POST("", middleware.PermissionMiddleware("grade:create"), v1.CreateGrade)

@@ -1,65 +1,71 @@
 import axios from 'axios'
 import { ElMessage } from 'element-plus'
+import { useUserStore } from '@/store/user'
+import router from '@/router'
 
 // 创建axios实例
 const request = axios.create({
-    baseURL: '/api/v1',
-    timeout: 10000,
+    baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080',
+    timeout: 15000
 })
 
 // 请求拦截器
 request.interceptors.request.use(
-    (config) => {
-        // 从localStorage获取token
-        const token = localStorage.getItem('token')
-        if (token) {
-            config.headers.Authorization = `Bearer ${token}`
+    config => {
+        const userStore = useUserStore()
+        if (userStore.token) {
+            config.headers['Authorization'] = `Bearer ${userStore.token}`
         }
         return config
     },
-    (error) => {
+    error => {
+        console.error('请求错误:', error)
         return Promise.reject(error)
     }
 )
 
 // 响应拦截器
 request.interceptors.response.use(
-    (response) => {
+    response => {
         const res = response.data
 
-        // 如果返回的状态码为200，说明接口请求成功
-        if (res.code === 200) {
-            return res
-        } else {
-            // 其他状态码都当作错误处理
+        // 如果返回的状态码不是200，说明接口有问题
+        if (response.status !== 200) {
             ElMessage.error(res.message || '请求失败')
             return Promise.reject(new Error(res.message || '请求失败'))
         }
+
+        return res
     },
-    (error) => {
-        console.error('请求错误:', error)
+    error => {
+        console.error('响应错误:', error)
 
         if (error.response) {
-            switch (error.response.status) {
+            const { status, data } = error.response
+
+            switch (status) {
                 case 401:
                     ElMessage.error('未授权，请重新登录')
-                    localStorage.removeItem('token')
-                    window.location.href = '/login'
+                    const userStore = useUserStore()
+                    userStore.logout()
+                    router.push('/login')
                     break
                 case 403:
-                    ElMessage.error('拒绝访问')
+                    ElMessage.error('拒绝访问，权限不足')
                     break
                 case 404:
-                    ElMessage.error('请求地址不存在')
+                    ElMessage.error('请求的资源不存在')
                     break
                 case 500:
-                    ElMessage.error('服务器内部错误')
+                    ElMessage.error(data.error || '服务器内部错误')
                     break
                 default:
-                    ElMessage.error(error.response.data.message || '请求失败')
+                    ElMessage.error(data.error || data.message || '请求失败')
             }
+        } else if (error.request) {
+            ElMessage.error('网络错误，请检查您的网络连接')
         } else {
-            ElMessage.error('网络错误，请检查网络连接')
+            ElMessage.error('请求配置出错')
         }
 
         return Promise.reject(error)

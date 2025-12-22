@@ -1,46 +1,39 @@
 import request from '@/utils/request'
 
-// 获取班级列表
 export const getClasses = (params) => {
     return request({
-        url: '/classes',
+        url: '/api/v1/classes',
         method: 'get',
-        params,
+        params
     })
 }
 
-// 获取班级详情
 export const getClass = (id) => {
     return request({
-        url: `/classes/${id}`,
-        method: 'get',
+        url: `/api/v1/classes/${id}`,
+        method: 'get'
     })
 }
 
-// 新增班级
 export const createClass = (data) => {
     return request({
-        url: '/classes',
+        url: '/api/v1/classes',
         method: 'post',
-        data,
+        data
     })
 }
 
-// 更新班级
 export const updateClass = (id, data) => {
     return request({
-        url: `/classes/${id}`,
+        url: `/api/v1/classes/${id}`,
         method: 'put',
-        data,
+        data
     })
 }
 
-// 删除班级
 export const deleteClass = (id) => {
     return request({
-        url: `/classes/${id}`,
-        method: 'delete',
+        url: `/api/v1/classes/${id}`,
+        method: 'delete'
     })
 }
-
-

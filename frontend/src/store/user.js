@@ -1,57 +1,63 @@
 import { defineStore } from 'pinia'
-import { login as loginApi, getCurrentUser } from '@/api/auth'
+import { ref } from 'vue'
+import router from '@/router'
 
-export const useUserStore = defineStore('user', {
-    state: () => ({
-        token: localStorage.getItem('token') || '',
-        userInfo: null,
-        permissions: JSON.parse(localStorage.getItem('permissions') || '[]'), // 权限列表
-    }),
+export const useUserStore = defineStore('user', () => {
+    // 状态
+    const token = ref(localStorage.getItem('token') || '')
+    const userInfo = ref(JSON.parse(localStorage.getItem('userInfo') || 'null'))
+    const permissions = ref(JSON.parse(localStorage.getItem('permissions') || '[]'))
 
-    getters: {
-        isLoggedIn: (state) => !!state.token,
-        // 检查是否有某个权限
-        hasPermission: (state) => (permission) => {
-            return state.permissions.includes(permission)
-        },
-    },
+    // 设置Token
+    const setToken = (newToken) => {
+        token.value = newToken
+        localStorage.setItem('token', newToken)
+    }
 
-    actions: {
-        // 登录
-        async login(credentials) {
-            try {
-                const res = await loginApi(credentials)
-                this.token = res.data.token
-                this.userInfo = res.data.user
-                this.permissions = res.data.permissions || []
-                localStorage.setItem('token', res.data.token)
-                localStorage.setItem('permissions', JSON.stringify(this.permissions))
-                return res
-            } catch (error) {
-                throw error
-            }
-        },
+    // 设置用户信息
+    const setUserInfo = (info) => {
+        userInfo.value = info
+        localStorage.setItem('userInfo', JSON.stringify(info))
+    }
 
-        // 获取用户信息
-        async fetchUserInfo() {
-            try {
-                const res = await getCurrentUser()
-                this.userInfo = res.data.user || res.data
-                this.permissions = res.data.permissions || []
-                localStorage.setItem('permissions', JSON.stringify(this.permissions))
-                return res
-            } catch (error) {
-                throw error
-            }
-        },
+    // 设置权限列表
+    const setPermissions = (perms) => {
+        permissions.value = perms
+        localStorage.setItem('permissions', JSON.stringify(perms))
+    }
 
-        // 登出
-        logout() {
-            this.token = ''
-            this.userInfo = null
-            this.permissions = []
-            localStorage.removeItem('token')
-            localStorage.removeItem('permissions')
-        },
-    },
+    // 登录
+    const login = (loginData) => {
+        setToken(loginData.token)
+        setUserInfo(loginData.user)
+        setPermissions(loginData.permissions || [])
+    }
+
+    // 登出
+    const logout = () => {
+        token.value = ''
+        userInfo.value = null
+        permissions.value = []
+        localStorage.removeItem('token')
+        localStorage.removeItem('userInfo')
+        localStorage.removeItem('permissions')
+        router.push('/login')
+    }
+
+    // 检查是否有某个权限
+    const hasPermission = (permission) => {
+        return permissions.value.includes(permission)
+    }
+
+    return {
+        token,
+        userInfo,
+        permissions,
+        setToken,
+        setUserInfo,
+        setPermissions,
+        login,
+        logout,
+        hasPermission
+    }
 })

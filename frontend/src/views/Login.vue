@@ -1,33 +1,36 @@
 <template>
   <div class="login-container">
-    <div class="login-box">
-      <div class="login-header">
-        <h2>学生管理系统</h2>
-        <p>Student Management System</p>
-      </div>
+    <el-card class="login-card">
+      <template #header>
+        <div class="card-header">
+          <h2>学生管理系统</h2>
+          <p>Student Management System</p>
+        </div>
+      </template>
       
       <el-form
         ref="loginFormRef"
         :model="loginForm"
         :rules="loginRules"
-        class="login-form"
+        label-width="80px"
+        size="large"
       >
-        <el-form-item prop="username">
+        <el-form-item label="用户名" prop="username">
           <el-input
             v-model="loginForm.username"
             placeholder="请输入用户名"
             prefix-icon="User"
-            size="large"
+            @keyup.enter="handleLogin"
           />
         </el-form-item>
         
-        <el-form-item prop="password">
+        <el-form-item label="密码" prop="password">
           <el-input
             v-model="loginForm.password"
             type="password"
             placeholder="请输入密码"
             prefix-icon="Lock"
-            size="large"
+            show-password
             @keyup.enter="handleLogin"
           />
         </el-form-item>
@@ -35,9 +38,8 @@
         <el-form-item>
           <el-button
             type="primary"
-            size="large"
             :loading="loading"
-            class="login-button"
+            style="width: 100%"
             @click="handleLogin"
           >
             登录
@@ -46,113 +48,114 @@
       </el-form>
       
       <div class="login-tips">
-        <p>默认管理员账号：admin / admin123</p>
+        <p>默认账号: admin</p>
+        <p>默认密码: admin123</p>
       </div>
-    </div>
+    </el-card>
   </div>
 </template>
 
 <script setup>
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
-import { useUserStore } from '@/store/user'
 import { ElMessage } from 'element-plus'
+import { useUserStore } from '@/store/user'
+import { login as loginApi } from '@/api/auth'
 
 const router = useRouter()
 const userStore = useUserStore()
 
-const loginFormRef = ref(null)
+const loginFormRef = ref()
 const loading = ref(false)
 
 const loginForm = reactive({
   username: '',
-  password: '',
+  password: ''
 })
 
 const loginRules = {
   username: [
-    { required: true, message: '请输入用户名', trigger: 'blur' },
+    { required: true, message: '请输入用户名', trigger: 'blur' }
   ],
   password: [
     { required: true, message: '请输入密码', trigger: 'blur' },
-    { min: 6, message: '密码长度不能小于6位', trigger: 'blur' },
-  ],
+    { min: 6, message: '密码长度至少6位', trigger: 'blur' }
+  ]
 }
 
 const handleLogin = async () => {
-  if (!loginFormRef.value) return
-  
-  await loginFormRef.value.validate(async (valid) => {
-    if (valid) {
-      loading.value = true
-      try {
-        await userStore.login(loginForm)
-        ElMessage.success('登录成功')
-        router.push('/')
-      } catch (error) {
-        console.error('登录失败:', error)
-      } finally {
-        loading.value = false
-      }
+  try {
+    await loginFormRef.value.validate()
+    
+    loading.value = true
+    const response = await loginApi(loginForm)
+    
+    if (response.token) {
+      // 保存登录信息
+      userStore.login({
+        token: response.token,
+        user: response.user,
+        permissions: response.permissions || []
+      })
+      
+      ElMessage.success('登录成功')
+      router.push('/')
+    } else {
+      ElMessage.error('登录失败，请检查用户名和密码')
     }
-  })
+  } catch (error) {
+    console.error('登录错误:', error)
+    if (error.response) {
+      ElMessage.error(error.response.data?.error || '登录失败')
+    }
+  } finally {
+    loading.value = false
+  }
 }
 </script>
 
 <style scoped>
 .login-container {
   display: flex;
-  align-items: center;
   justify-content: center;
+  align-items: center;
   min-height: 100vh;
-  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 }
 
-.login-box {
-  width: 420px;
-  padding: 40px;
-  background: #fff;
-  border-radius: 10px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+.login-card {
+  width: 450px;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
 }
 
-.login-header {
+.card-header {
   text-align: center;
-  margin-bottom: 40px;
 }
 
-.login-header h2 {
-  font-size: 28px;
-  color: #5a6c7d;
-  margin-bottom: 10px;
+.card-header h2 {
+  margin: 0;
+  font-size: 24px;
+  color: #333;
 }
 
-.login-header p {
+.card-header p {
+  margin: 8px 0 0 0;
   font-size: 14px;
-  color: #95a5b6;
-}
-
-.login-form {
-  margin-top: 20px;
-}
-
-.login-button {
-  width: 100%;
-  background: linear-gradient(135deg, #74b9ff 0%, #a29bfe 100%);
-  border: none;
-}
-
-.login-button:hover {
-  background: linear-gradient(135deg, #5da8f2 0%, #8b84e8 100%);
+  color: #999;
 }
 
 .login-tips {
   margin-top: 20px;
+  padding: 12px;
+  background: #f5f7fa;
+  border-radius: 4px;
+  font-size: 13px;
+  color: #666;
   text-align: center;
 }
 
 .login-tips p {
-  font-size: 12px;
-  color: #999;
+  margin: 4px 0;
 }
 </style>

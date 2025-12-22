@@ -1,19 +1,9 @@
 import request from '@/utils/request'
 
-export function fetchNotifications(params) {
-  return request({
-    url: '/notifications',
-    method: 'get',
-    params,
-  })
+export const getNotifications = (params) => {
+    return request({ url: '/api/v1/notifications', method: 'get', params })
 }
 
-export function createNotification(data) {
-  return request({
-    url: '/notifications',
-    method: 'post',
-    data,
-  })
+export const createNotification = (data) => {
+    return request({ url: '/api/v1/notifications', method: 'post', data })
 }
-
-

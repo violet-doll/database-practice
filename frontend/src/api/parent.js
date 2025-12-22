@@ -1,34 +1,17 @@
 import request from '@/utils/request'
 
-export function fetchParents(params) {
-  return request({
-    url: '/parents',
-    method: 'get',
-    params,
-  })
+export const getParents = (params) => {
+    return request({ url: '/api/v1/parents', method: 'get', params })
 }
 
-export function createParent(data) {
-  return request({
-    url: '/parents',
-    method: 'post',
-    data,
-  })
+export const createParent = (data) => {
+    return request({ url: '/api/v1/parents', method: 'post', data })
 }
 
-export function updateParent(id, data) {
-  return request({
-    url: `/parents/${id}`,
-    method: 'put',
-    data,
-  })
+export const updateParent = (id, data) => {
+    return request({ url: `/api/v1/parents/${id}`, method: 'put', data })
 }
 
-export function deleteParent(id) {
-  return request({
-    url: `/parents/${id}`,
-    method: 'delete',
-  })
+export const deleteParent = (id) => {
+    return request({ url: `/api/v1/parents/${id}`, method: 'delete' })
 }
-
-

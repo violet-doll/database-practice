@@ -159,6 +159,20 @@ func SetupRouter() *gin.Engine {
 			// 统计概览
 			admin.GET("/stats/overview", middleware.PermissionMiddleware("admin:stats:read"), v1.AdminOverviewStats)
 		}
+
+		// 数据库管理（需要认证和管理员权限）
+		database := apiV1.Group("/database")
+		database.Use(middleware.AuthMiddleware())
+		{
+			database.GET("/tables", middleware.PermissionMiddleware("admin:user:read"), v1.GetTableList)
+			database.GET("/tables/:table", middleware.PermissionMiddleware("admin:user:read"), v1.GetTableData)
+			database.GET("/tables/:table/schema", middleware.PermissionMiddleware("admin:user:read"), v1.GetTableSchema)
+			database.POST("/tables/:table", middleware.PermissionMiddleware("admin:user:create"), v1.CreateTableData)
+			database.PUT("/tables/:table/:id", middleware.PermissionMiddleware("admin:user:update"), v1.UpdateTableData)
+			database.DELETE("/tables/:table/:id", middleware.PermissionMiddleware("admin:user:delete"), v1.DeleteTableData)
+			database.GET("/tables/:table/export", middleware.PermissionMiddleware("admin:user:read"), v1.ExportTableData)
+			database.POST("/execute", middleware.PermissionMiddleware("admin:user:create"), v1.ExecuteSQL)
+		}
 	}
 
 	return r

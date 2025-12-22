@@ -90,12 +90,13 @@ const handleLogin = async () => {
     loading.value = true
     const response = await loginApi(loginForm)
     
-    if (response.token) {
+    // 后端返回格式: { code, message, data: { token, user, permissions } }
+    if (response.data && response.data.token) {
       // 保存登录信息
       userStore.login({
-        token: response.token,
-        user: response.user,
-        permissions: response.permissions || []
+        token: response.data.token,
+        user: response.data.user,
+        permissions: response.data.permissions || []
       })
       
       ElMessage.success('登录成功')
@@ -106,7 +107,7 @@ const handleLogin = async () => {
   } catch (error) {
     console.error('登录错误:', error)
     if (error.response) {
-      ElMessage.error(error.response.data?.error || '登录失败')
+      ElMessage.error(error.response.data?.message || error.response.data?.error || '登录失败')
     }
   } finally {
     loading.value = false

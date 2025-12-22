@@ -10,8 +10,8 @@ import (
 	"github.com/joho/godotenv"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 	"gorm.io/gorm/logger"
-    "gorm.io/gorm/clause"
 )
 
 var DB *gorm.DB
@@ -46,13 +46,14 @@ func InitDB() {
 	// 自动迁移 - 按依赖关系排序
 	err = DB.AutoMigrate(
 		// 1. 基础表（无外键依赖）
-		&models.Permission{},      // 权限表
-		&models.Role{},            // 角色表
-		&models.RolePermission{},  // 角色-权限关联表
+		&models.Permission{},     // 权限表
+		&models.Role{},           // 角色表
+		&models.RolePermission{}, // 角色-权限关联表
 		&models.User{},
 		&models.Teacher{},
 		&models.Class{},
 		&models.Course{},
+		&models.CoursePrerequisite{}, // 课程先修关系表
 		&models.Notification{},
 
 		// 2. 依赖基础表的表
@@ -62,6 +63,7 @@ func InitDB() {
 		// 3. 依赖多个表的关联表
 		&models.Enrollment{},       // 依赖 Student, Course
 		&models.Grade{},            // 依赖 Enrollment
+		&models.GradeAuditLog{},    // 依赖 Grade - 成绩审计日志（配合触发器使用）
 		&models.Attendance{},       // 依赖 Student
 		&models.RewardPunishment{}, // 依赖 Student
 		&models.Schedule{},         // 依赖 Course, Class, Teacher
@@ -228,12 +230,12 @@ func initPermissionsAndAssignRoles() {
 		if count == 0 {
 			// 学生权限：查看自己的信息、课程、成绩、考勤、奖惩
 			studentPerms := []string{
-				"student:read",      // 只能查看自己的信息（需要在业务逻辑中限制）
+				"student:read", // 只能查看自己的信息（需要在业务逻辑中限制）
 				"course:read",
 				"enrollment:read",
-				"grade:read",        // 只能查看自己的成绩（需要在业务逻辑中限制）
-				"attendance:read",  // 只能查看自己的考勤（需要在业务逻辑中限制）
-				"reward:read",      // 只能查看自己的奖惩（需要在业务逻辑中限制）
+				"grade:read",      // 只能查看自己的成绩（需要在业务逻辑中限制）
+				"attendance:read", // 只能查看自己的考勤（需要在业务逻辑中限制）
+				"reward:read",     // 只能查看自己的奖惩（需要在业务逻辑中限制）
 				"notification:read",
 			}
 			assignPermissionsToRole(&studentRole, studentPerms, "student")
@@ -247,10 +249,10 @@ func initPermissionsAndAssignRoles() {
 		if count == 0 {
 			// 家长权限：查看关联学生的成绩、考勤、奖惩
 			parentPerms := []string{
-				"student:read",     // 只能查看关联学生的信息（需要在业务逻辑中限制）
-				"grade:read",        // 只能查看关联学生的成绩（需要在业务逻辑中限制）
-				"attendance:read",   // 只能查看关联学生的考勤（需要在业务逻辑中限制）
-				"reward:read",       // 只能查看关联学生的奖惩（需要在业务逻辑中限制）
+				"student:read",    // 只能查看关联学生的信息（需要在业务逻辑中限制）
+				"grade:read",      // 只能查看关联学生的成绩（需要在业务逻辑中限制）
+				"attendance:read", // 只能查看关联学生的考勤（需要在业务逻辑中限制）
+				"reward:read",     // 只能查看关联学生的奖惩（需要在业务逻辑中限制）
 				"notification:read",
 			}
 			assignPermissionsToRole(&parentRole, parentPerms, "parent")

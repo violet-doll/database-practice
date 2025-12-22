@@ -23,9 +23,9 @@ type Role struct {
 // 权限表 (Permission)
 type Permission struct {
 	gorm.Model
-	Name       string `gorm:"type:varchar(100);not null" json:"name"`        // 权限名称 (e.g., "创建学生")
+	Name       string `gorm:"type:varchar(100);not null" json:"name"`                   // 权限名称 (e.g., "创建学生")
 	Permission string `gorm:"type:varchar(100);uniqueIndex;not null" json:"permission"` // 权限标识 (e.g., "student:create")
-	Group      string `gorm:"type:varchar(50)" json:"group"`               // 分组 (e.g., "student")
+	Group      string `gorm:"type:varchar(50)" json:"group"`                            // 分组 (e.g., "student")
 }
 
 // 角色-权限 关联表 (RolePermission)
@@ -54,12 +54,12 @@ type Student struct {
 // 4. 家长表 (对应要求 1, 5)
 type Parent struct {
 	gorm.Model
-	StudentID uint   `gorm:"index" json:"student_id"` // 关联学生
+	StudentID uint    `gorm:"index" json:"student_id"`                       // 关联学生
 	Student   Student `gorm:"foreignKey:StudentID" json:"student,omitempty"` // 关联学生信息
-	Name      string `gorm:"type:varchar(100)" json:"name"`
-	Phone     string `gorm:"type:varchar(20);not null" json:"phone"`
-	Relation  string `gorm:"type:varchar(20)" json:"relation"` // e.g., "父亲", "母亲"
-	UserID    uint   `json:"user_id"` // 关联登录用户 User (如果家长可以登录)
+	Name      string  `gorm:"type:varchar(100)" json:"name"`
+	Phone     string  `gorm:"type:varchar(20);not null" json:"phone"`
+	Relation  string  `gorm:"type:varchar(20)" json:"relation"` // e.g., "父亲", "母亲"
+	UserID    uint    `json:"user_id"`                          // 关联登录用户 User (如果家长可以登录)
 }
 
 // 5. 教师表
@@ -84,10 +84,12 @@ type Class struct {
 // 7. 课程表 (对应要求 2)
 type Course struct {
 	gorm.Model
-	CourseName string  `gorm:"not null" json:"course_name"`
-	TeacherID  uint    `json:"teacher_id"` // 授课教师 (关联 Teacher)
-	Teacher    Teacher `gorm:"foreignKey:TeacherID" json:"teacher"`
-	Credits    float64 `json:"credits"` // 学分
+	CourseName    string  `gorm:"not null" json:"course_name"`
+	TeacherID     uint    `json:"teacher_id"` // 授课教师 (关联 Teacher)
+	Teacher       Teacher `gorm:"foreignKey:TeacherID" json:"teacher"`
+	Credits       float64 `json:"credits"`                         // 学分
+	Capacity      int     `gorm:"default:50" json:"capacity"`      // 课程容量
+	EnrolledCount int     `gorm:"default:0" json:"enrolled_count"` // 已选人数
 }
 
 // 8. 选课表 (学生和课程的中间表) (对应要求 2)
@@ -98,6 +100,15 @@ type Enrollment struct {
 	CourseID  uint    `gorm:"index:idx_student_course,unique" json:"course_id"`
 	Course    Course  `gorm:"foreignKey:CourseID" json:"Course"`               // 明确指定JSON字段名
 	Grades    []Grade `gorm:"foreignKey:EnrollmentID" json:"Grades,omitempty"` // 明确指定JSON字段名
+}
+
+// 课程先修关系表 (对应课程依赖关系)
+type CoursePrerequisite struct {
+	CourseID  uint   `gorm:"primaryKey" json:"course_id"` // 当前课程ID
+	PrereqID  uint   `gorm:"primaryKey" json:"prereq_id"` // 先修课程ID
+	CreatedAt string `json:"created_at"`
+	Course    Course `gorm:"foreignKey:CourseID" json:"course,omitempty"` // 当前课程
+	Prereq    Course `gorm:"foreignKey:PrereqID" json:"prereq,omitempty"` // 先修课程
 }
 
 // 9. 成绩表 (对应要求 2)
@@ -144,13 +155,24 @@ type Schedule struct {
 	gorm.Model
 	CourseID  uint    `gorm:"index" json:"course_id"` // 关联课程
 	Course    Course  `gorm:"foreignKey:CourseID" json:"course"`
-	ClassID   uint    `gorm:"index" json:"class_id"`  // 关联班级
+	ClassID   uint    `gorm:"index" json:"class_id"` // 关联班级
 	Class     Class   `gorm:"foreignKey:ClassID" json:"class"`
 	TeacherID uint    `gorm:"index" json:"teacher_id"` // 关联教师 (可从Course获取, 但显式存储更灵活)
 	Teacher   Teacher `gorm:"foreignKey:TeacherID" json:"teacher"`
-	DayOfWeek int     `json:"day_of_week"`           // 星期几 (例如 1=周一, 7=周日)
-	StartTime string  `json:"start_time"`            // 节次或时间 (e.g., "08:00" 或 "1-2节")
-	EndTime   string  `json:"end_time"`              // (e.g., "09:40")
-	Location  string  `json:"location"`              // 上课地点 (e.g., "教5-101")
-	Semester  string  `json:"semester"`              // (可选) 学期 (e.g., "2025-Fall")
+	DayOfWeek int     `json:"day_of_week"` // 星期几 (例如 1=周一, 7=周日)
+	StartTime string  `json:"start_time"`  // 节次或时间 (e.g., "08:00" 或 "1-2节")
+	EndTime   string  `json:"end_time"`    // (e.g., "09:40")
+	Location  string  `json:"location"`    // 上课地点 (e.g., "教5-101")
+	Semester  string  `json:"semester"`    // (可选) 学期 (e.g., "2025-Fall")
+}
+
+// 14. 成绩审计日志表 (对应修改要求 - 数据看门狗)
+// 说明：该表配合触发器使用，自动记录成绩修改历史
+// 触发器在 docs/update_schema.sql 中定义
+type GradeAuditLog struct {
+	gorm.Model
+	GradeID  uint    `gorm:"index;not null" json:"grade_id"`            // 被修改的成绩记录ID
+	OldScore float64 `gorm:"type:decimal(5,2)" json:"old_score"`        // 修改前分数
+	NewScore float64 `gorm:"type:decimal(5,2)" json:"new_score"`        // 修改后分数
+	Grade    Grade   `gorm:"foreignKey:GradeID" json:"grade,omitempty"` // 关联成绩记录
 }

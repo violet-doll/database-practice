@@ -63,42 +63,39 @@ func CreateEnrollment(c *gin.Context) {
 
 	db := config.GetDB()
 
-	// 根据学号查找学生
+	// 使用存储过程进行选课
+	// GORM 调用存储过程
+	// 注意：这里假设 req.StudentNumber 是学号字符串，但存储过程需要 student_id (INT)
+	// 我们需要先查询 student_id
 	var student models.Student
 	if err := db.Where("student_id = ?", req.StudentNumber).First(&student).Error; err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 400, "message": "学生不存在（学号不存在）", "error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"code": 400, "message": "学生不存在"})
 		return
 	}
 
-	// 检查该 Enrollment 是否已存在
-	var existingEnrollment models.Enrollment
-	if err := db.Where("student_id = ? AND course_id = ?", student.ID, req.CourseID).First(&existingEnrollment).Error; err == nil {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 400, "message": "该选课记录已存在"})
+	// 执行存储过程
+	// CALL sp_enroll_student(p_student_id, p_course_id, @p_status, @p_message)
+	err := db.Raw("CALL sp_enroll_student(?, ?, @status, @message)", student.ID, req.CourseID).Scan(&struct{}{}).Error
+	if err != nil {
+		// 存储过程执行错误（可能是SQL错误）
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 500, "message": "选课系统异常", "error": err.Error()})
 		return
 	}
 
-	// 验证课程是否存在
-	var course models.Course
-	if err := db.First(&course, req.CourseID).Error; err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 400, "message": "课程不存在", "error": err.Error()})
+	// 获取 OUT 参数
+	type Result struct {
+		Status  int
+		Message string
+	}
+	var res Result
+	db.Raw("SELECT @status as status, @message as message").Scan(&res)
+
+	if res.Status != 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 400, "message": res.Message})
 		return
 	}
 
-	// 创建新的 Enrollment 记录
-	enrollment := models.Enrollment{
-		StudentID: student.ID,
-		CourseID:  req.CourseID,
-	}
-
-	if err := db.Create(&enrollment).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"code": 500, "message": "创建选课记录失败", "error": err.Error()})
-		return
-	}
-
-	// 预加载关联数据以便返回完整信息
-	db.Preload("Course").Preload("Student").First(&enrollment, enrollment.ID)
-
-	c.JSON(http.StatusOK, gin.H{"code": 200, "message": "创建成功", "data": enrollment})
+	c.JSON(http.StatusOK, gin.H{"code": 200, "message": "选课成功"})
 }
 
 // DeleteEnrollment 删除选课记录
@@ -140,4 +137,3 @@ func DeleteEnrollment(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"code": 200, "message": "删除成功"})
 }
-

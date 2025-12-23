@@ -313,6 +313,30 @@ INSERT INTO courses (course_name, teacher_id, credits, capacity, enrolled_count,
 ('Info Security', 6, 3.0, 40, 0, NOW(3), NOW(3)),
 ('Blockchain Tech', 7, 2.5, 35, 0, NOW(3), NOW(3));
 
+-- 扩展课程：批量新增 400 门课程，为大规模选课提供唯一组合
+SET @course_existing_count := (SELECT COUNT(*) FROM courses);
+SET @extra_course_total := 400;
+
+INSERT INTO courses (course_name, teacher_id, credits, capacity, enrolled_count, created_at, updated_at)
+SELECT 
+    CONCAT('Extra Course ', LPAD(n, 3, '0')) AS course_name,
+    ((n - 1) MOD 8) + 1 AS teacher_id,   -- 循环分配给 8 名教师
+    3.0 AS credits,
+    60 AS capacity,
+    0 AS enrolled_count,
+    NOW(3),
+    NOW(3)
+FROM (
+    SELECT (t1.i + t2.i*10 + t3.i*100) + 1 AS n
+    FROM (SELECT 0 i UNION ALL SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4 UNION ALL SELECT 5 UNION ALL SELECT 6 UNION ALL SELECT 7 UNION ALL SELECT 8 UNION ALL SELECT 9) t1
+    CROSS JOIN (SELECT 0 i UNION ALL SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4 UNION ALL SELECT 5 UNION ALL SELECT 6 UNION ALL SELECT 7 UNION ALL SELECT 8 UNION ALL SELECT 9) t2
+    CROSS JOIN (SELECT 0 i UNION ALL SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4 UNION ALL SELECT 5 UNION ALL SELECT 6 UNION ALL SELECT 7 UNION ALL SELECT 8 UNION ALL SELECT 9) t3
+) seq
+WHERE n <= @extra_course_total;
+
+SET @course_new_start := @course_existing_count + 1;
+SET @course_new_count := (SELECT COUNT(*) FROM courses) - @course_existing_count;
+
 -- ============================================
 -- 11. 插入课程先修关系
 -- ============================================
@@ -374,6 +398,24 @@ INSERT INTO enrollments (student_id, course_id, created_at, updated_at) VALUES
 (28, 2, NOW(3), NOW(3)), (28, 7, NOW(3), NOW(3)), (28, 8, NOW(3), NOW(3)), (28, 14, NOW(3), NOW(3)),
 (29, 1, NOW(3), NOW(3)), (29, 4, NOW(3), NOW(3)), (29, 7, NOW(3), NOW(3)), (29, 8, NOW(3), NOW(3)),
 (30, 3, NOW(3), NOW(3)), (30, 5, NOW(3), NOW(3)), (30, 7, NOW(3), NOW(3)), (30, 8, NOW(3), NOW(3));
+
+-- 兼容未开启/不支持递归 CTE 的 MySQL 版本：用数字表生成 1..10000
+SET @student_count := (SELECT COUNT(*) FROM students);
+
+INSERT INTO enrollments (student_id, course_id, created_at, updated_at)
+SELECT 
+    FLOOR((n - 1) / @course_new_count) + 1 AS student_id,              -- 400 门扩展课为一组，顺序铺满学生
+    @course_new_start + ((n - 1) MOD @course_new_count) AS course_id,   -- 每 400 条切换到下一位学生
+    NOW(3),
+    NOW(3)
+FROM (
+    SELECT (t1.i + t2.i*10 + t3.i*100 + t4.i*1000) + 1 AS n
+    FROM (SELECT 0 i UNION ALL SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4 UNION ALL SELECT 5 UNION ALL SELECT 6 UNION ALL SELECT 7 UNION ALL SELECT 8 UNION ALL SELECT 9) t1
+    CROSS JOIN (SELECT 0 i UNION ALL SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4 UNION ALL SELECT 5 UNION ALL SELECT 6 UNION ALL SELECT 7 UNION ALL SELECT 8 UNION ALL SELECT 9) t2
+    CROSS JOIN (SELECT 0 i UNION ALL SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4 UNION ALL SELECT 5 UNION ALL SELECT 6 UNION ALL SELECT 7 UNION ALL SELECT 8 UNION ALL SELECT 9) t3
+    CROSS JOIN (SELECT 0 i UNION ALL SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4 UNION ALL SELECT 5 UNION ALL SELECT 6 UNION ALL SELECT 7 UNION ALL SELECT 8 UNION ALL SELECT 9) t4
+) seq
+WHERE n <= 10000;
 
 -- 更新课程的已选人数
 UPDATE courses c
